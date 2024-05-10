@@ -48,7 +48,7 @@ Alunos:
 | Gustavo C. M. de Medeiros      | https://github.com/GusMedeiros  | gustavomedeiros@id.uff.br |
 | João Vitor de Santana      | https://github.com/Jvssaa  | santanajoao@id.uff.br |
 | João Vitor de Moraes      | https://github.com/JohKemPo/JohKemPo  | joaovitormoraes@id.uff.br |
-| Victor Hugo M. de Oliveira      | -  | victorhmo@id.uff.br |
+| Victor Hugo M. de Oliveira      | https://github.com/Victor-HMO  | victorhmo@id.uff.br |
 
 <h6>Professora: <a href="https://www.ic.uff.br/blog/pessoas/maria-cristina-silva-boeres/">Maria Cristina Boeres</a></h6>
 
