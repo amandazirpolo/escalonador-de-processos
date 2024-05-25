@@ -9,6 +9,7 @@
 #define BLOQUEADO 4
 #define BLOQUEADO_SUSPENSO 5
 #define SAIDA 6
+#define MAX_PROCESSOS 100
 
 /* estruturas vão nesse arquivo */
 typedef struct processo {
