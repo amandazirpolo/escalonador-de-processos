@@ -15,7 +15,7 @@ int main(){
 
     fclose(arquivo);
 
-    estado_MS(disco1, disco2, disco3, disco4);
+    visualiza_MS(disco1, disco2, disco3, disco4);
     
     libera_MS(disco1, disco2, disco3, disco4);
     

@@ -53,8 +53,11 @@ typedef struct disco {
 void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
 void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
 
+// funções de busca 
+P busca_processo_MS(MS disco1, MS disco2, MS disco3, MS disco4, P processos);
+
 // funções de verificação
-void estado_MS(MS disco1, MS disco2, MS disco3, MS disco4);
+void visualiza_MS(MS disco1, MS disco2, MS disco3, MS disco4);
 
 // funções de criação
 F* cria_processo(int id_processo, int chegada, int duracao_fase1, int duracao_es, int duracao_fase2, int tam, MS id_disco);

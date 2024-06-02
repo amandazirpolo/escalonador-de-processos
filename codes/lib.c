@@ -137,7 +137,7 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     return id_disco.processos;
 }
 
-void estado_MS(MS disco1, MS disco2, MS disco3, MS disco4){
+void visualiza_MS(MS disco1, MS disco2, MS disco3, MS disco4){
     F *aux1 = disco1.processos, *aux2 = disco2.processos,
     *aux3 = disco3.processos, *aux4 = disco4.processos;
 
@@ -207,4 +207,50 @@ void libera_MS (MS disco1, MS disco2, MS disco3, MS disco4){
         aux4 = aux4->prox;
         free(tmp);
     }
+}
+
+/*
+ATENÇÃO A QUEM FOR USAR ESSA FUNÇÃO:
+PARA SABER SE O PROCESSO REALMENTE EXISTE, USE
+UMA VARIAVEL COMUM (SEM SER PONTEIRO) DO TIPO P
+E CHEQUE O INDICE DO PROCESSO E DO DISCO!!!!!!
+SE FOR -1, QUER DIZER QUE NAO EXISTE PROCESSO
+CASO CONTRARIO O INDICE DO DISCO TE DIRÁ AONDE O PROCESSO
+ESTÁ
+*/
+P busca_processo_MS(MS disco1, MS disco2, MS disco3, MS disco4, P processos){
+    F *aux1 = disco1.processos, *aux2 = disco2.processos,
+    *aux3 = disco3.processos, *aux4 = disco4.processos;
+
+    // procura no disco 1
+    while(aux1){
+        if(aux1->processo.id_processo == processos.id_processo) return aux1->processo;
+        aux1 = aux1->prox;
+    }
+
+    // procura no disco 2
+    while(aux2){
+        if(aux2->processo.id_processo == processos.id_processo) return aux2->processo;
+        aux2 = aux2->prox;
+    }
+
+    // procura no disco 3
+    while(aux3){
+        if(aux3->processo.id_processo == processos.id_processo) return aux3->processo;
+        aux3 = aux3->prox;
+    }
+
+    // procura no disco 4
+    while(aux4){
+        if(aux4->processo.id_processo == processos.id_processo) return aux4->processo;
+        aux4 = aux4->prox;
+    }
+
+    // se não retornou ainda, então o elemento não está em MS
+    P proc;
+    // se o id_processo e o indice_disco forem -1, elemento não existe
+    proc.id_processo = -1;
+    proc.indice_disco = -1;
+
+    return proc;
 }
