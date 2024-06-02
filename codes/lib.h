@@ -9,12 +9,15 @@
 #define BLOQUEADO 4
 #define BLOQUEADO_SUSPENSO 5
 #define SAIDA 6
-#define MAX_PROCESSOS 100
 
 /* estruturas vão nesse arquivo */
 typedef struct processo {
-    int tam;
+    int id_processo;
     int chegada;
+    int duracao_fase1;
+    int duracao_es;
+    int duracao_fase2;
+    int tam;
     int estado; // definidos pelas variáveis globais
     int indice_fila;
     int indice_cpu;
@@ -45,5 +48,16 @@ typedef struct disco {
 } MS;
 
 /* cabeçalho das funções vão nesse arquivo */
-void inicializa (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
-void operacao (P processo);
+
+// funções de inicialização
+void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
+void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
+
+// funções de verificação
+void estado_MS(MS disco1, MS disco2, MS disco3, MS disco4);
+
+// funções de criação
+F* cria_processo(int id_processo, int chegada, int duracao_fase1, int duracao_es, int duracao_fase2, int tam, MS id_disco);
+
+// funções de desalocação
+void libera_MS (MS disco1, MS disco2, MS disco3, MS disco4);
