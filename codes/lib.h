@@ -54,7 +54,7 @@ void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco
 void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
 
 // funções de busca 
-P busca_processo_MS(MS disco1, MS disco2, MS disco3, MS disco4, P processos);
+P busca_processo_MS(MS id_disco, P processos);
 
 // funções de verificação
 void visualiza_MS(MS disco1, MS disco2, MS disco3, MS disco4);

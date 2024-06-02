@@ -24,7 +24,7 @@ void inicializa_hardware(MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4
 }
 
 void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS *disco4){
-    P aux;
+    P aux, tmp;
     int id = 1;
     while(fscanf(arquivo, "%d, %d, %d, %d, %d, %d\n",
         &aux.chegada,
@@ -35,20 +35,32 @@ void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS 
         &aux.indice_disco) == 6){
             switch (aux.indice_disco){
             case 1:
-                disco1->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                aux.duracao_es, aux.duracao_fase2, aux.tam, *disco1);
+                tmp = busca_processo_MS(*disco1, aux);
+                if(tmp.indice_disco == -1){
+                    disco1->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
+                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco1);
+                }
                 break;
             case 2:
-                disco2->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                aux.duracao_es, aux.duracao_fase2, aux.tam, *disco2);
+                tmp = busca_processo_MS(*disco2, aux);
+                if(tmp.indice_disco == -1){
+                    disco2->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
+                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco2);
+                }
                 break;
             case 3:
-                disco3->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                aux.duracao_es, aux.duracao_fase2, aux.tam, *disco3);
+                tmp = busca_processo_MS(*disco3, aux);
+                if(tmp.indice_disco == -1){
+                    disco3->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
+                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco3);
+                }
                 break;
             case 4:
-                disco4->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                aux.duracao_es, aux.duracao_fase2, aux.tam, *disco4);
+                tmp = busca_processo_MS(*disco4, aux);
+                if(tmp.indice_disco == -1){
+                    disco4->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
+                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco4);
+                }
                 break;
             default:
                 printf("UNIDADE DE DISCO INEXISTENTE. \n");
@@ -218,35 +230,16 @@ SE FOR -1, QUER DIZER QUE NAO EXISTE PROCESSO
 CASO CONTRARIO O INDICE DO DISCO TE DIRÁ AONDE O PROCESSO
 ESTÁ
 */
-P busca_processo_MS(MS disco1, MS disco2, MS disco3, MS disco4, P processos){
-    F *aux1 = disco1.processos, *aux2 = disco2.processos,
-    *aux3 = disco3.processos, *aux4 = disco4.processos;
+P busca_processo_MS(MS id_disco, P processos){
+    F *aux = id_disco.processos;
 
     // procura no disco 1
-    while(aux1){
-        if(aux1->processo.id_processo == processos.id_processo) return aux1->processo;
-        aux1 = aux1->prox;
+    while(aux){
+        if(aux->processo.id_processo == processos.id_processo) return aux->processo;
+        aux= aux->prox;
     }
 
-    // procura no disco 2
-    while(aux2){
-        if(aux2->processo.id_processo == processos.id_processo) return aux2->processo;
-        aux2 = aux2->prox;
-    }
-
-    // procura no disco 3
-    while(aux3){
-        if(aux3->processo.id_processo == processos.id_processo) return aux3->processo;
-        aux3 = aux3->prox;
-    }
-
-    // procura no disco 4
-    while(aux4){
-        if(aux4->processo.id_processo == processos.id_processo) return aux4->processo;
-        aux4 = aux4->prox;
-    }
-
-    // se não retornou ainda, então o elemento não está em MS
+    // se não retornou, então o elemento não está em MS
     P proc;
     // se o id_processo e o indice_disco forem -1, elemento não existe
     proc.id_processo = -1;
