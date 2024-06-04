@@ -1,7 +1,7 @@
 #include "lib.h"
 
 /* funções vão nesse arquivo */
-void inicializa_hardware(MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4){
+void inicializa_hardware(MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4, ARM *disco_rigido){
     // inicializa a ram
     ram->tam_total = 32000;
     ram->controle_memoria = 0;
@@ -11,19 +11,23 @@ void inicializa_hardware(MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4
 
     // inicializa os discos
     disco1->indice = 1;
-    disco1->processos = NULL;
+    disco1->processo.id_processo = -1;
 
     disco2->indice = 2;
-    disco2->processos = NULL;
+    disco2->processo.id_processo = -1;
 
     disco3->indice = 3;
-    disco3->processos = NULL;
+    disco3->processo.id_processo = -1;
 
     disco4->indice = 4;
-    disco4->processos = NULL;
+    disco4->processo.id_processo = -1;
+
+    // inicializa o disco rígido
+    disco_rigido->processos = NULL;
+
 }
 
-void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS *disco4){
+void inicializa_processos(FILE *arquivo, ARM *disco_rigido){
     P aux, tmp;
     int id = 1;
     while(fscanf(arquivo, "%d, %d, %d, %d, %d, %d\n",
@@ -32,40 +36,11 @@ void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS 
         &aux.duracao_es,
         &aux.duracao_fase2,
         &aux.tam,
-        &aux.indice_disco) == 6){
-            switch (aux.indice_disco){
-            case 1:
-                tmp = busca_processo_MS(*disco1, aux);
-                if(tmp.indice_disco == -1){
-                    disco1->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco1);
-                }
-                break;
-            case 2:
-                tmp = busca_processo_MS(*disco2, aux);
-                if(tmp.indice_disco == -1){
-                    disco2->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco2);
-                }
-                break;
-            case 3:
-                tmp = busca_processo_MS(*disco3, aux);
-                if(tmp.indice_disco == -1){
-                    disco3->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco3);
-                }
-                break;
-            case 4:
-                tmp = busca_processo_MS(*disco4, aux);
-                if(tmp.indice_disco == -1){
-                    disco4->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                    aux.duracao_es, aux.duracao_fase2, aux.tam, *disco4);
-                }
-                break;
-            default:
-                printf("UNIDADE DE DISCO INEXISTENTE. \n");
-                exit(1);
-                break;
+        &aux.numero_discos) == 6){
+            tmp = busca_processo_ARM(*disco_rigido, aux);
+            if(tmp.id_processo == -1){
+                disco_rigido->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
+                    aux.duracao_es, aux.duracao_fase2, aux.tam, aux.numero_discos, *disco_rigido);
             }
         id++;
         }
@@ -120,9 +95,9 @@ void imprime_processos(P *processo, int nprocessos){
 */
 
 
-// insere os processos na memória secundária
+// insere os processos no disco de armazenamento
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
-    int duracao_es, int duracao_fase2, int tam, MS id_disco){
+    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido){
     F *novo = (F*)malloc(sizeof(F));
     if(!novo) exit(1);
     // guarda as infos nas estruturas necessárias
@@ -134,90 +109,48 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     novo->processo.tam = tam;
     // foi carregado em memória, vai para o estado novo
     novo->processo.estado = NOVO;
-    novo->processo.indice_disco = id_disco.indice;
+    novo->processo.numero_discos = numero_discos;
     // Se a fila estiver nula, o novo processo se torna o primeiro da fila e retornamos ele
-    if(!id_disco.processos) {
-        novo->prox = id_disco.processos;
+    if(!disco_rigido.processos) {
+        novo->prox = disco_rigido.processos;
         return novo;
     }
-    F *aux = id_disco.processos;
+    F *aux = disco_rigido.processos;
     while(aux->prox != NULL){
         aux = aux->prox;
     }
     aux->prox = novo;
     novo->prox = NULL;
-    return id_disco.processos;
+    return disco_rigido.processos;
 }
 
-void visualiza_MS(MS disco1, MS disco2, MS disco3, MS disco4){
-    F *aux1 = disco1.processos, *aux2 = disco2.processos,
-    *aux3 = disco3.processos, *aux4 = disco4.processos;
-
-    printf("ESTADO DA MEMORIA SECUNDARIA: \n\n");
-
-    printf("DISCO 1: \n");
-    while(aux1 != NULL){
-        printf("PROCESSO [%d]: \n", aux1->processo.id_processo);
-        printf("tempo de chegada: %d, tempo de cpu: %d, tamanho do processo: %d MB, estado do processo: %d \n",
-            aux1->processo.chegada, (aux1->processo.duracao_fase1 + aux1->processo.duracao_fase2),
-            aux1->processo.tam, aux1->processo.estado);
-        aux1 = aux1->prox;
+void visualiza_MS(MS id_disco){
+    printf("DISCO %d: \n", id_disco.indice);
+    if(id_disco.processo.id_processo == -1){
+        printf("DISCO LIVRE \n");
+    } else {
+        printf("Processo %d em disco. \n", id_disco.processo.id_processo);
     }
-
-    printf("\nDISCO 2: \n");
-    while(aux2 != NULL){
-        printf("PROCESSO [%d]: \n", aux2->processo.id_processo);
-        printf("tempo de chegada: %d, tempo de cpu: %d, tamanho do processo: %d MB, estado do processo: %d \n",
-            aux2->processo.chegada, (aux2->processo.duracao_fase1 + aux2->processo.duracao_fase2),
-            aux2->processo.tam, aux2->processo.estado);
-        aux2 = aux2->prox;
-    }
-
-    printf("\nDISCO 3: \n");
-    while(aux3 != NULL){
-        printf("PROCESSO [%d]: \n", aux3->processo.id_processo);
-        printf("tempo de chegada: %d, tempo de cpu: %d, tamanho do processo: %d MB, estado do processo: %d \n",
-            aux3->processo.chegada, (aux3->processo.duracao_fase1 + aux3->processo.duracao_fase2),
-            aux3->processo.tam, aux3->processo.estado);
-        aux3 = aux3->prox;
-    }
-
-    printf("\nDISCO 4: \n");
-    while(aux4 != NULL){
-        printf("PROCESSO [%d]: \n", aux4->processo.id_processo);
-        printf("tempo de chegada: %d, tempo de cpu: %d, tamanho do processo: %d MB, estado do processo: %d \n",
-            aux4->processo.chegada, (aux4->processo.duracao_fase1 + aux4->processo.duracao_fase2),
-            aux4->processo.tam, aux4->processo.estado);
-        aux4 = aux4->prox;
-    }  
 }
 
-void libera_MS (MS disco1, MS disco2, MS disco3, MS disco4){
-    F *aux1 = disco1.processos, *aux2 = disco2.processos,
-    *aux3 = disco3.processos, *aux4 = disco4.processos, *tmp;
+void libera_ARM (ARM disco_rigido){
+    F *aux = disco_rigido.processos, *tmp;
 
-    while(aux1 != NULL){
-        tmp = aux1;
-        aux1 = aux1->prox;
+    while(aux != NULL){
+        tmp = aux;
+        aux = aux->prox;
         free(tmp);
     }
+}
 
-    while(aux2 != NULL){
-        tmp = aux2;
-        aux2 = aux2->prox;
-        free(tmp);
-    }
+void visualiza_ARM (ARM disco_rigido){
+    F *aux = disco_rigido.processos;
 
-    while(aux3 != NULL){
-        tmp = aux3;
-        aux3 = aux3->prox;
-        free(tmp);
-    }
-
-    while(aux4 != NULL){
-        tmp = aux4;
-        aux4 = aux4->prox;
-        free(tmp);
+    printf("Lista de processos existentes: \n");
+    while(aux){
+        printf("id_processo: %d, tam_processo: %d MB, estado_processo: %d \n", 
+        aux->processo.id_processo, aux->processo.tam, aux->processo.estado);
+        aux = aux->prox;
     }
 }
 
@@ -230,20 +163,20 @@ SE FOR -1, QUER DIZER QUE NAO EXISTE PROCESSO
 CASO CONTRARIO O INDICE DO DISCO TE DIRÁ AONDE O PROCESSO
 ESTÁ
 */
-P busca_processo_MS(MS id_disco, P processos){
-    F *aux = id_disco.processos;
+P busca_processo_ARM(ARM disco_rigido, P processos){
+    F *aux = disco_rigido.processos;
 
-    // procura no disco 1
+    // procura no disco
     while(aux){
         if(aux->processo.id_processo == processos.id_processo) return aux->processo;
         aux= aux->prox;
     }
 
-    // se não retornou, então o elemento não está em MS
+    // se não retornou, então o elemento não existe
     P proc;
-    // se o id_processo e o indice_disco forem -1, elemento não existe
+    // se o id_processo for -1, elemento não existe
     proc.id_processo = -1;
-    proc.indice_disco = -1;
 
     return proc;
 }
+

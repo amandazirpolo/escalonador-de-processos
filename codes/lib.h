@@ -22,6 +22,7 @@ typedef struct processo {
     int indice_fila;
     int indice_cpu;
     int indice_disco; 
+    int numero_discos;
 } P;
 
 typedef struct cpu {
@@ -44,23 +45,30 @@ typedef struct ram {
 
 typedef struct disco {
     int indice;
-    F *processos;
+    P processo; // vai funcionar igual a cpu, apenas 1 processo alocado por vez
 } MS;
+
+// essa struct nova vai servir como um hd, já que os discos usaremos para e/s
+typedef struct armazenamento {
+    F *processos;
+} ARM;
 
 /* cabeçalho das funções vão nesse arquivo */
 
 // funções de inicialização
-void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
-void inicializa_processos(FILE *arquivo, MS *disco1, MS *disco2, MS *disco3, MS *disco4);
+void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4, ARM *disco_rigido);
+void inicializa_processos(FILE *arquivo, ARM *disco_rigido);
 
 // funções de busca 
-P busca_processo_MS(MS id_disco, P processos);
+P busca_processo_ARM(ARM disco_rigido, P processos);
 
 // funções de verificação
-void visualiza_MS(MS disco1, MS disco2, MS disco3, MS disco4);
+void visualiza_MS(MS id_disco);
+void visualiza_ARM (ARM disco_rigido);
 
 // funções de criação
-F* cria_processo(int id_processo, int chegada, int duracao_fase1, int duracao_es, int duracao_fase2, int tam, MS id_disco);
+F* cria_processo(int id_processo, int chegada, int duracao_fase1,
+    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido);
 
 // funções de desalocação
-void libera_MS (MS disco1, MS disco2, MS disco3, MS disco4);
+void libera_ARM(ARM disco_rigido);
