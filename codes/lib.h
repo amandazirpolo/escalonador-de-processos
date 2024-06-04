@@ -23,6 +23,7 @@ typedef struct processo {
     int indice_cpu;
     int indice_disco; 
     int numero_discos;
+    int qtd_paginas;
 } P;
 
 typedef struct cpu {
@@ -37,7 +38,10 @@ typedef struct fila {
 
 typedef struct ram {
     int tam_total;
-    int controle_memoria; // para controlar o número de processos alocados na memória
+    int controle_memoria;
+    int tamanho_pagina;
+    int numero_paginas; // para controlar o número de processos alocados na memória
+    int paginas_disponiveis;
     F *processos;
     F *prontos;
     F *bloqueados;
@@ -57,7 +61,7 @@ typedef struct armazenamento {
 
 // funções de inicialização
 void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4, ARM *disco_rigido);
-void inicializa_processos(FILE *arquivo, ARM *disco_rigido);
+void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram);
 
 // funções de busca 
 P busca_processo_ARM(ARM disco_rigido, P processos);
@@ -65,10 +69,13 @@ P busca_processo_ARM(ARM disco_rigido, P processos);
 // funções de verificação
 void visualiza_MS(MS id_disco);
 void visualiza_ARM (ARM disco_rigido);
+void visualiza_MP (MP ram);
 
 // funções de criação
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
-    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido);
+    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
+F *insere_na_fila(F *fila, P processo);
+void insere_MP(ARM disco_rigido, MP *ram, P processo);
 
 // funções de desalocação
-void libera_ARM(ARM disco_rigido);
+void libera_fila(F *fila);

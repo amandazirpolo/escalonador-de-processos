@@ -3,8 +3,11 @@
 /* funções vão nesse arquivo */
 void inicializa_hardware(MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4, ARM *disco_rigido){
     // inicializa a ram
-    ram->tam_total = 32000;
+    ram->tam_total = 32768;
     ram->controle_memoria = 0;
+    ram->tamanho_pagina = 1024; // cada pagina tem 1024 MB
+    ram->numero_paginas = ram->tam_total / ram->tamanho_pagina; // ao todo são 32 paginas
+    ram->paginas_disponiveis = ram->numero_paginas;
     ram->processos = NULL;
     ram->prontos = NULL;
     ram->bloqueados = NULL;
@@ -27,7 +30,7 @@ void inicializa_hardware(MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4
 
 }
 
-void inicializa_processos(FILE *arquivo, ARM *disco_rigido){
+void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
     P aux, tmp;
     int id = 1;
     while(fscanf(arquivo, "%d, %d, %d, %d, %d, %d\n",
@@ -40,7 +43,7 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido){
             tmp = busca_processo_ARM(*disco_rigido, aux);
             if(tmp.id_processo == -1){
                 disco_rigido->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
-                    aux.duracao_es, aux.duracao_fase2, aux.tam, aux.numero_discos, *disco_rigido);
+                    aux.duracao_es, aux.duracao_fase2, aux.tam, aux.numero_discos, *disco_rigido, ram);
             }
         id++;
         }
@@ -94,10 +97,44 @@ void imprime_processos(P *processo, int nprocessos){
 }
 */
 
+void insere_MP(ARM disco_rigido, MP *ram, P processo){
+    // se essa condição for maior que zero, entao tem espaço disponivel na memoria
+    if(((ram->tam_total - ram->controle_memoria) > 0) && (ram->paginas_disponiveis) > 0){
+        // atualiza o contexto do processo
+        processo.estado = PRONTO;
+        // atualiza o contexto da mp
+        ram->controle_memoria = ram->controle_memoria - processo.tam;
+        ram->paginas_disponiveis = ram->paginas_disponiveis - processo.qtd_paginas;
+        ram->prontos = insere_na_fila(ram->prontos, processo);
+        ram->processos = insere_na_fila(ram->processos, processo);
+        // atualiza o contexto do processo no armazenamento
+        F *aux = disco_rigido.processos;
+        while(aux){
+            if(aux->processo.id_processo == processo.id_processo){
+                aux->processo.estado = PRONTO;
+                break;
+            }
+            aux = aux->prox;
+        }
+    }
+    /*else {
+        swapper(disco_rigido, ram, processo);
+        swapper vai tirar alguem da memoria principal, suspender, e atualizar
+        a info do processo no disco rigido
+    }*/
+}
+
+F* insere_na_fila(F *fila, P processo){
+    F *novo = (F*)malloc(sizeof(F));
+    if(!novo) exit(1);
+    novo->processo = processo;
+    novo->prox = fila;
+    return novo;
+}
 
 // insere os processos no disco de armazenamento
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
-    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido){
+    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram){
     F *novo = (F*)malloc(sizeof(F));
     if(!novo) exit(1);
     // guarda as infos nas estruturas necessárias
@@ -107,6 +144,8 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     novo->processo.duracao_es = duracao_es;
     novo->processo.duracao_fase2 = duracao_fase2;
     novo->processo.tam = tam;
+    novo->processo.qtd_paginas = (novo->processo.tam + ram.tamanho_pagina - 1) / ram.tamanho_pagina;
+
     // foi carregado em memória, vai para o estado novo
     novo->processo.estado = NOVO;
     novo->processo.numero_discos = numero_discos;
@@ -133,8 +172,8 @@ void visualiza_MS(MS id_disco){
     }
 }
 
-void libera_ARM (ARM disco_rigido){
-    F *aux = disco_rigido.processos, *tmp;
+void libera_fila(F *fila){
+    F *aux = fila, *tmp;
 
     while(aux != NULL){
         tmp = aux;
@@ -146,12 +185,52 @@ void libera_ARM (ARM disco_rigido){
 void visualiza_ARM (ARM disco_rigido){
     F *aux = disco_rigido.processos;
 
-    printf("Lista de processos existentes: \n");
+    printf("\nLista de processos existentes: \n");
     while(aux){
         printf("id_processo: %d, tam_processo: %d MB, estado_processo: %d \n", 
         aux->processo.id_processo, aux->processo.tam, aux->processo.estado);
         aux = aux->prox;
     }
+}
+
+void visualiza_MP (MP ram){
+    printf("\n\nESTADO DA MEMORIA PRINCIPAL: \n\n");
+    
+    printf("LISTA DE PROCESSOS EM MP: \n");
+    F *aux = ram.processos;
+    if(!aux) {
+        printf("NENHUM PROCESSO EM MP. \n");
+        return;
+    }
+
+    while(aux){
+        printf("Processo %d - ", aux->processo.id_processo);
+        aux = aux->prox;
+    }
+    printf("FIM. \n");
+
+    printf("LISTA DE PRONTOS: \n");
+    aux = ram.prontos;
+    if(!aux) printf("NENHUM PROCESSO PRONTO. \n");
+    
+    while(aux){
+        printf("Processo %d - ", aux->processo.id_processo);
+        aux = aux->prox;
+    }
+    printf("FIM. \n");
+
+    printf("LISTA DE BLOQUEADOS: \n");
+    aux = ram.bloqueados;
+    if(!aux) printf("NENHUM PROCESSO BLOQUEADO. \n");
+    
+    while(aux){
+        printf("Processo %d - ", aux->processo.id_processo);
+        aux = aux->prox;
+    }
+    printf("FIM. \n");
+
+    printf("numero total de paginas: %d \n", ram.numero_paginas);
+    printf("numero de paginas disponiveis: %d \n", ram.paginas_disponiveis);
 }
 
 /*

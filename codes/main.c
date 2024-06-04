@@ -12,7 +12,7 @@ int main(){
     FILE *arquivo = fopen("arquivo.txt", "r");
     if(!arquivo) exit(1);
 
-    inicializa_processos(arquivo, &disco_rigido);
+    inicializa_processos(arquivo, &disco_rigido, ram);
 
     fclose(arquivo);
 
@@ -21,9 +21,29 @@ int main(){
     visualiza_MS(disco3);
     visualiza_MS(disco4);
 
+    printf("ANTES DE PREENCHER A MP \n");
     visualiza_ARM(disco_rigido);
+    visualiza_MP(ram);
+
+
+    F *tmp = disco_rigido.processos;
+    while(tmp){
+        insere_MP(disco_rigido, &ram, tmp->processo);
+        tmp = tmp->prox;
+    }
+    tmp = disco_rigido.processos;
+    while(tmp){
+        printf("processo %d: ", tmp->processo.id_processo);
+        printf("numero de paginas que ele precisa: %d - ", tmp->processo.qtd_paginas);
+        printf("tam do processo: %d \n\n", tmp->processo.tam);
+        tmp = tmp->prox;
+    }
     
-    libera_ARM(disco_rigido);
+    printf("\n\nDEPOIS DE PREENCHER A MP \n");
+    visualiza_ARM(disco_rigido);
+    visualiza_MP(ram);
+    
+    libera_fila(disco_rigido.processos);
     
     return 0;
 }
