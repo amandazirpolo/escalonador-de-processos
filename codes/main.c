@@ -35,7 +35,8 @@ int main(){
     while(tmp){
         printf("processo %d: ", tmp->processo.id_processo);
         printf("numero de paginas que ele precisa: %d - ", tmp->processo.qtd_paginas);
-        printf("tam do processo: %d \n\n", tmp->processo.tam);
+        printf("tam do processo: %d \n", tmp->processo.tam);
+        printf("fase que o processo esta: %d \n", fase_do_processo(tmp->processo));
         tmp = tmp->prox;
     }
     
@@ -43,14 +44,23 @@ int main(){
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
-    //execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu1, &cpu2, &cpu3, &cpu4);
-    //execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1, &cpu2, &cpu3, &cpu1);
+    CPU x = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
+    printf("CPU DISPONIVEL: %d \n\n", x.indice);
+
+    CPU aux1 = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
+    CPU aux2 = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
+
+    execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
+    execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
 
     visualiza_CPU(cpu1);
     visualiza_CPU(cpu2);
     visualiza_CPU(cpu3);
     visualiza_CPU(cpu4);
-    
+
+    visualiza_ARM(disco_rigido);
+    visualiza_MP(ram);
+
     libera_fila(ram.processos);
     libera_fila(ram.prontos);
     libera_fila(ram.bloqueados);

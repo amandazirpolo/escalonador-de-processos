@@ -70,9 +70,11 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram);
 
 // funções de busca 
 P busca_processo_ARM(ARM disco_rigido, P processos);
+F *busca_processo_fila(F *fila, P processo);
 
 // funções auxiliares
-void decrementa_tempo_restante(CPU *indice_cpu, F *prontos, P *processo, int fase);
+int fase_do_processo(P processo);
+CPU cpu_disponivel(CPU cpu1, CPU cpu2, CPU cpu3, CPU cpu4);
 
 // funções de verificação
 void visualiza_DMA(DMA id_disco);
@@ -85,8 +87,9 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
 F *insere_na_fila(F *fila, P processo);
 void insere_MP(ARM disco_rigido, MP *ram, P processo);
-void execucao(ARM disco_rigido, MP *ram, P processo, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4);
-void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu, int fase);
+void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
+void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
+F *retira_da_fila(F *fila, P processo);
 
 // funções de desalocação
 void libera_fila(F *fila);

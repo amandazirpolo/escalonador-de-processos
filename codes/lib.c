@@ -62,6 +62,8 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
         }
 }
 
+//void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
+
 void insere_MP(ARM disco_rigido, MP *ram, P processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
     if(((ram->tam_total - ram->controle_memoria) > 0) && (ram->paginas_disponiveis) > 0){
@@ -97,102 +99,113 @@ void visualiza_CPU (CPU indice_cpu){
     }
     else {
         printf("PROCESSO %d em EXECUCAO \n", indice_cpu.processo.id_processo);
-        printf("tempo restante fase_1: %d", indice_cpu.processo.controle_fase1);
-        printf("tempo restante e/s: %d", indice_cpu.processo.controle_es);
-        printf("tempo restante fase_2: %d", indice_cpu.processo.controle_fase2);
+        printf("tempo restante fase_1: %d\n", indice_cpu.processo.controle_fase1);
+        printf("tempo restante e/s: %d\n", indice_cpu.processo.controle_es);
+        printf("tempo restante fase_2: %d\n", indice_cpu.processo.controle_fase2);
     }
 }
-/*
-void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu, int fase){
+
+F *retira_da_fila(F *fila, P processo){
+    F *atual = fila, *anterior = NULL;
+    while((atual) && (atual->processo.id_processo != processo.id_processo)){
+        anterior = atual;
+        atual = atual->prox;
+    }
+    if(!atual) return fila;
+    if(!anterior) fila = fila->prox;
+    else anterior->prox = atual->prox;
+    free(atual);
+    return fila;
+}
+
+CPU cpu_disponivel(CPU cpu1, CPU cpu2, CPU cpu3, CPU cpu4){
+    if(cpu1.processo.id_processo == -1) return cpu1;
+    if(cpu2.processo.id_processo == -1) return cpu2;
+    if(cpu3.processo.id_processo == -1) return cpu3;
+    if(cpu4.processo.id_processo == -1) return cpu4;
+    CPU tmp;
+    tmp.indice = -1;
+    tmp.processo.id_processo = -1;
+    return tmp;
+}
+
+int fase_do_processo(P processo){
+    // retorna 1 se for a fase 1, 2 se for a fase de e/s e 3 se for a fase 2
+    if((processo.controle_fase1 > 0) && (processo.controle_es > 0) 
+        && (processo.controle_fase2 > 0)) return 1;
+    if((processo.controle_fase1 == 0) && (processo.controle_es > 0)
+        && (processo.controle_fase2 > 0)) return 2;
+    if((processo.controle_fase1 == 0) && (processo.controle_es == 0) 
+        && (processo.controle_fase2 > 0)) return 3;
+}
+
+void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
+    if(processo.estado == PRONTO){
+        insere_CPU(disco_rigido, ram, processo, indice_cpu);
+    }
+}
+
+F *busca_processo_fila(F *fila, P processo){
+    F *aux = fila;
+    while((aux) && (aux->processo.id_processo != processo.id_processo)){
+        aux = aux->prox;
+    }
+    return aux;
+}
+
+void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
     // atualiza o contexto do processo
     processo.estado = EXECUTANDO;
-    // verifica em qual fase está
-    if(fase == 1) processo.controle_fase1--;
-    else processo.controle_fase2--;
-    // atualiza o contexto da cpu
-    indice_cpu->processo = processo;
+    int fase = fase_do_processo(processo);
+    switch (fase){
+    case 1:
+        processo.controle_fase1--;
+        break;
+    case 2:
+        processo.duracao_es--;
+        break;
+    case 3:
+        processo.duracao_fase2--;
+    default:
+        ("ERRO \n");
+        break;
+    }
     // atualiza o contexto da mp
-    //ram->prontos = remove_da_fila(ram->prontos, processo);
+    ram->prontos = retira_da_fila(ram->prontos, processo);
     F *aux = ram->processos;
+    
     while(aux){
-        while(aux){
-            if(aux->processo.id_processo == processo.id_processo){
-                aux->processo.estado = EXECUTANDO;
-                break;
-            }
-            aux = aux->prox;
+        if(aux->processo.id_processo == processo.id_processo){
+            aux->processo = processo; //acho que o problema ta nessa linha
+            break;
         }
+        aux = aux->prox;
     }
+    
     // atualiza o contexto do processo no armazenamento
-    aux = disco_rigido.processos;
-        while(aux){
-            if(aux->processo.id_processo == processo.id_processo){
-                aux->processo.estado = EXECUTANDO;
-                break;
-            }
-            aux = aux->prox;
+    F *tmp = ram->processos;
+
+    while(tmp){
+        if(tmp->processo.id_processo == processo.id_processo){
+            tmp->processo = processo;
+            break;
         }
+        tmp = tmp->prox;
+    }
+
+    // aloca na cpu
+    indice_cpu->processo = processo;
 }
-
-void decrementa_tempo_restante(CPU *indice_cpu, F* prontos, P *processo, int fase){
-    if(fase == 1) processo->controle_fase1--;
-    else processo->controle_fase2--;
-    if((processo->controle_fase1 == 0) && (processo->controle_fase2 > 0)){
-        prontos = insere_na_fila(prontos, *processo);
-        indice_cpu->processo.id_processo = -1; // quer dizer que a cpu ficou disponivel
-    }
-    /*
-    if((processo->controle_fase1 == 0) && (processo->controle_fase2 == 0)){
-        // incrementar uma logica para tirar o processo da mp... talvez nao seja nessa funcao
-    }
-    */
-
-
-/*
-void execucao(ARM disco_rigido, MP *ram, P processo, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
-    if(processo.estado == PRONTO){
-        int fase = -1;
-        // verifica se é a fase de execução 1 ou 2
-        // se ambos sao maiores que zero, entao é a fase 1. se nao é fase 2
-        if((processo.controle_fase1 > 0) && (processo.controle_fase2 > 0)) fase = 1;
-        else fase = 2;
-        if((cpu1->processo.id_processo == -1) || (cpu2->processo.id_processo == -1)
-        || (cpu3->processo.id_processo == -1) || (cpu4->processo.id_processo == -1)){
-            // primeiro checa se o processo esta em execucao em alguma cpu
-            if(cpu1->processo.id_processo == processo.id_processo)
-                decrementa_tempo_restante(&cpu1, ram->prontos, &processo, fase);
-            if(cpu2->processo.id_processo == processo.id_processo)
-                decrementa_tempo_restante(&cpu2, ram->prontos, &processo, fase);
-            if(cpu3->processo.id_processo == processo.id_processo)
-                decrementa_tempo_restante(&cpu3, ram->prontos, &processo, fase);
-            if(cpu4->processo.id_processo == processo.id_processo)
-                decrementa_tempo_restante(&cpu4, ram->prontos, &processo, fase);
-            //se nao tiver, verifica qual é a cpu que esta disponivel e envia para a primeira que achou
-            if(cpu1->processo.id_processo == -1){
-                insere_CPU(disco_rigido, ram, processo, cpu1, fase);
-            }
-            if(cpu2->processo.id_processo == -1){
-                insere_CPU(disco_rigido, ram, processo, cpu2, fase);
-            }
-            if(cpu3->processo.id_processo == -1){
-                insere_CPU(disco_rigido, ram, processo, cpu3, fase);
-            }
-            if(cpu4->processo.id_processo == -1){
-                insere_CPU(disco_rigido, ram, processo, cpu4, fase);
-            }
-        } else {
-            printf("SEM NUCLEOS DE PROCESSAMENTO DISPONIVEIS NO MOMENTO \n");
-        }
-    }
-}
-*/
 
 F* insere_na_fila(F *fila, P processo){
-    F *novo = (F*)malloc(sizeof(F));
-    if(!novo) exit(1);
-    novo->processo = processo;
-    novo->prox = fila;
-    return novo;
+    if(!busca_processo_fila(fila, processo)){
+        F *novo = (F*)malloc(sizeof(F));
+        if(!novo) exit(1);
+        novo->processo = processo;
+        novo->prox = fila;
+        return novo;
+    }
+    return fila;
 }
 
 // insere os processos no disco de armazenamento
@@ -298,15 +311,6 @@ void visualiza_MP (MP ram){
     printf("numero de paginas disponiveis: %d \n", ram.paginas_disponiveis);
 }
 
-/*
-ATENÇÃO A QUEM FOR USAR ESSA FUNÇÃO:
-PARA SABER SE O PROCESSO REALMENTE EXISTE, USE
-UMA VARIAVEL COMUM (SEM SER PONTEIRO) DO TIPO P
-E CHEQUE O INDICE DO PROCESSO E DO DISCO!!!!!!
-SE FOR -1, QUER DIZER QUE NAO EXISTE PROCESSO
-CASO CONTRARIO O INDICE DO DISCO TE DIRÁ AONDE O PROCESSO
-ESTÁ
-*/
 P busca_processo_ARM(ARM disco_rigido, P processos){
     F *aux = disco_rigido.processos;
 
@@ -323,4 +327,3 @@ P busca_processo_ARM(ARM disco_rigido, P processos){
 
     return proc;
 }
-
