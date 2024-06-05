@@ -3,11 +3,12 @@
 int main(){
     CPU cpu1, cpu2, cpu3, cpu4;
     MP ram;
-    MS disco1, disco2, disco3, disco4;
+    DMA disco1, disco2, disco3, disco4;
     ARM disco_rigido;
     int tempo = 0;
 
-    inicializa_hardware(&ram, &disco1, &disco2, &disco3, &disco4, &disco_rigido);
+    inicializa_hardware(&ram, &disco1, &disco2, &disco3, &disco4,
+        &disco_rigido, &cpu1, &cpu2, &cpu3, &cpu4);
 
     FILE *arquivo = fopen("arquivo.txt", "r");
     if(!arquivo) exit(1);
@@ -16,15 +17,14 @@ int main(){
 
     fclose(arquivo);
 
-    visualiza_MS(disco1);
-    visualiza_MS(disco2);
-    visualiza_MS(disco3);
-    visualiza_MS(disco4);
+    visualiza_DMA(disco1);
+    visualiza_DMA(disco2);
+    visualiza_DMA(disco3);
+    visualiza_DMA(disco4);
 
     printf("ANTES DE PREENCHER A MP \n");
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
-
 
     F *tmp = disco_rigido.processos;
     while(tmp){
@@ -42,8 +42,20 @@ int main(){
     printf("\n\nDEPOIS DE PREENCHER A MP \n");
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
+
+    //execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu1, &cpu2, &cpu3, &cpu4);
+    //execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1, &cpu2, &cpu3, &cpu1);
+
+    visualiza_CPU(cpu1);
+    visualiza_CPU(cpu2);
+    visualiza_CPU(cpu3);
+    visualiza_CPU(cpu4);
     
+    libera_fila(ram.processos);
+    libera_fila(ram.prontos);
+    libera_fila(ram.bloqueados);
     libera_fila(disco_rigido.processos);
+    libera_fila(disco_rigido.suspensos);
     
     return 0;
 }

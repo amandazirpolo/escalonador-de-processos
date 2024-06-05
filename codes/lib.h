@@ -15,13 +15,16 @@ typedef struct processo {
     int id_processo;
     int chegada;
     int duracao_fase1;
+    int controle_fase1;
     int duracao_es;
+    int controle_es;
     int duracao_fase2;
+    int controle_fase2;
     int tam;
     int estado; // definidos pelas variáveis globais
-    int indice_fila;
-    int indice_cpu;
-    int indice_disco; 
+    //int indice_fila;
+    //int indice_cpu;
+    //int indice_disco; 
     int numero_discos;
     int qtd_paginas;
 } P;
@@ -50,32 +53,40 @@ typedef struct ram {
 typedef struct disco {
     int indice;
     P processo; // vai funcionar igual a cpu, apenas 1 processo alocado por vez
-} MS;
+} DMA;
 
 // essa struct nova vai servir como um hd, já que os discos usaremos para e/s
 typedef struct armazenamento {
     F *processos;
+    F *suspensos;
 } ARM;
 
 /* cabeçalho das funções vão nesse arquivo */
 
 // funções de inicialização
-void inicializa_hardware (MP *ram, MS *disco1, MS *disco2, MS *disco3, MS *disco4, ARM *disco_rigido);
+void inicializa_hardware (MP *ram, DMA *disco1, DMA *disco2, DMA *disco3,
+    DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4);
 void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram);
 
 // funções de busca 
 P busca_processo_ARM(ARM disco_rigido, P processos);
 
+// funções auxiliares
+void decrementa_tempo_restante(CPU *indice_cpu, F *prontos, P *processo, int fase);
+
 // funções de verificação
-void visualiza_MS(MS id_disco);
+void visualiza_DMA(DMA id_disco);
 void visualiza_ARM (ARM disco_rigido);
 void visualiza_MP (MP ram);
+void visualiza_CPU (CPU indice_cpu);
 
 // funções de criação
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
 F *insere_na_fila(F *fila, P processo);
 void insere_MP(ARM disco_rigido, MP *ram, P processo);
+void execucao(ARM disco_rigido, MP *ram, P processo, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4);
+void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu, int fase);
 
 // funções de desalocação
 void libera_fila(F *fila);
