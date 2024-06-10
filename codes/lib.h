@@ -93,3 +93,12 @@ F *retira_da_fila(F *fila, P processo);
 
 // funções de desalocação
 void libera_fila(F *fila);
+
+// codificação e decodificação de endereços virtuais
+
+void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int tamanho_pagina_bytes) {
+    uintptr_t virtual = (uintptr_t) endereco_virtual;
+    uintptr_t pagina = (uintptr_t) endereco_pagina;
+    uintptr_t offset = virtual % tamanho_pagina_bytes;
+    return (void*)(pagina + offset);
+}
