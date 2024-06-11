@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h> // Comentar em caso de testes
 
 #define QUANTUM 3
 #define NOVO 0
@@ -81,10 +82,12 @@ int verifica_fila(P processo);
 CPU cpu_disponivel(CPU cpu1, CPU cpu2, CPU cpu3, CPU cpu4);
 
 // funções de verificação
-void visualiza_DMA(DMA id_disco);
+void visualiza_DMA(DMA discos[], int n);
 void visualiza_ARM (ARM disco_rigido);
 void visualiza_MP (MP ram);
-void visualiza_CPU (CPU indice_cpu);
+void visualiza_CPU(CPU cpus[], int n);
+void apresentacao();
+void resumo_processo(F *tmp);
 
 // funções de criação
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,

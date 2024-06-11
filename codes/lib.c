@@ -158,17 +158,29 @@ int verifica_fila(P processo){
     return 2;
 }
 
-void visualiza_CPU (CPU indice_cpu){
-    printf("ESTADO DA CPU %d: \n", indice_cpu.indice);
-    if(indice_cpu.processo.id_processo == -1){
-        printf("CPU %d DISPONIVEL \n", indice_cpu.indice);
-        return;
-    }
-    else {
-        printf("PROCESSO %d em EXECUCAO \n", indice_cpu.processo.id_processo);
-        printf("tempo restante fase_1: %d\n", indice_cpu.processo.controle_fase1);
-        printf("tempo restante e/s: %d\n", indice_cpu.processo.controle_es);
-        printf("tempo restante fase_2: %d\n", indice_cpu.processo.controle_fase2);
+void visualiza_CPU(CPU cpus[], int n) {
+    printf("------------------------------------------------------------------------------\n");
+    printf("                              ESTADO DAs CPUs                                  \n");
+    printf("------------------------------------------------------------------------------\n");
+    printf(" CPU |   Processo   | Tmp. Rest. Fase 1 | Tmp.  Rest. E/S | Tmp. Rest. Fase 2 \n");
+    printf("-----+--------------+-------------------+-----------------+-------------------\n");
+    for (int i = 0; i < n; i++) {
+        CPU indice_cpu = cpus[i];
+        
+
+        if (indice_cpu.processo.id_processo == -1) {
+            printf(" %d   |     -1       |       -1          |       -1        |       -1        \n", indice_cpu.indice);
+            printf("------------------------------------------------------------------------------\n");
+
+        } else {
+            printf(" %d   |      %d       |        %d          |        %d        |        %d        \n",
+                    indice_cpu.indice,
+                    indice_cpu.processo.id_processo,
+                    indice_cpu.processo.controle_fase1, 
+                    indice_cpu.processo.controle_es, 
+                    indice_cpu.processo.controle_fase2);
+            printf("------------------------------------------------------------------------------\n");
+        }
     }
 }
 
@@ -324,14 +336,49 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     return disco_rigido.processos;
 }
 
-void visualiza_DMA(DMA id_disco){
-    printf("DISCO %d: \n", id_disco.indice);
-    if(id_disco.processo.id_processo == -1){
-        printf("DISCO LIVRE \n");
-    } else {
-        printf("Processo %d em disco. \n", id_disco.processo.id_processo);
+void visualiza_DMA(DMA discos[], int n) {
+    // Imprimindo o cabeçalho da tabela
+    printf("-------------------------------------------------------\n");
+    printf("              TABELA DE ESTADOS DOS DISCOS              \n");
+    printf("---------+---------------------------------------------\n");
+    printf("DISCO    |       STATUS\n");
+    printf("---------+---------------------------------------------\n");
+
+    // Imprimindo o status de cada disco
+    for (int i = 0; i < n; i++) {
+        DMA disco = discos[i];
+
+        printf("Disco %d  | ", i+1);
+        if (disco.processo.id_processo == -1) {
+            printf("Livre\n");
+        } else {
+            printf("Processo %d em disco\n", disco.processo.id_processo);
+        }
     }
+    printf("-------------------------------------------------------\n\n");
+    
 }
+
+void apresentacao(){
+    printf("=======================================================\n");
+    printf("               ________________________               \n");
+    printf("\n");
+    printf("                      SIMULADOR                       \n");
+    printf("               Escalonador de Processos               \n");
+    printf("               ________________________               \n");
+    printf("\n");
+    printf("                       GRUPO 5                        \n\n");
+    printf("--------------------------+----------------------------\n");
+    printf(" Amanda S. Zírpolo        | amandazirpolo@id.uff.br\n");
+    printf(" Gabriel J. Panza         | gabrieljp@id.uff.br\n");
+    printf(" Gustavo C.M. de Medeiros | gustavomedeiros@id.uff.br\n");
+    printf(" João Vitor M. de Moraes  | joaovitormoraes@id.uff.br\n");
+    printf(" João Vitor de S.         | santanajoao@id.uff.br\n");
+    printf("--------------------------+----------------------------\n");
+    printf("\n");
+    printf("=======================================================\n\n\n");
+}
+
 
 void libera_fila(F *fila){
     F *aux = fila, *tmp;
@@ -343,68 +390,132 @@ void libera_fila(F *fila){
     }
 }
 
-void visualiza_ARM (ARM disco_rigido){
-    F *aux = disco_rigido.processos;
+void visualiza_ARM(ARM disco_rigido) {
+    F* aux = disco_rigido.processos;
 
-    printf("\nLista de processos existentes: \n");
-    while(aux){
-        printf("id_processo: %d, tam_processo: %d MB, estado_processo: %d, indice_da_fila: %d \n", 
-        aux->processo.id_processo, aux->processo.tam, aux->processo.estado, aux->processo.indice_fila);
+    printf("-------------------------------------------------------\n");
+    printf("             LISTA DE PROCESSOS EXISTENTES             \n");
+    printf("------------+--------------+--------+------------------\n");
+    printf("ID Processo | Tamanho (MB) | Estado | Índice da Fila\n");
+    printf("------------+--------------+--------+------------------\n");
+
+    while(aux) {
+        printf("%11d | %12d | %6d | %13d\n", 
+               aux->processo.id_processo, 
+               aux->processo.tam, 
+               aux->processo.estado, 
+               aux->processo.indice_fila);
         aux = aux->prox;
     }
+
+    printf("-------------------------------------------------------\n\n");
 }
 
-void visualiza_MP (MP ram){
-    printf("\n\nESTADO DA MEMORIA PRINCIPAL: \n\n");
+void resumo_processo(F *tmp){
+     // Cabeçalho para a lista de processos
+    printf("-------------------------------------------------------\n");
+    printf("             ESTADO DOS PROCESSOS NO DISCO             \n");
+    printf("-------------------------------------------------------\n");
+    printf("ID Processo | Qtde Páginas | Tamanho (MB) | Fase\n");
+    printf("------------+--------------+--------------+------\n");
     
-    printf("LISTA DE PROCESSOS EM MP: \n");
-    F *aux = ram.processos;
+    // Listando os processos
+    while(tmp) {
+    printf("     %d      |      %d       |      %d       |  %d\n", 
+               tmp->processo.id_processo, 
+               tmp->processo.qtd_paginas, 
+               tmp->processo.tam, 
+               fase_do_processo(tmp->processo));
+        tmp = tmp->prox;
+    }
+    printf("-------------------------------------------------------\n\n");
+}
+
+
+void visualiza_MP(MP ram) {
+    F* aux = ram.processos;
+
+    printf("-------------------------------------------------------\n\n");
+    printf("              ESTADO DA MEMORIA PRINCIPAL              \n\n");
+    printf("-------------------------------------------------------\n");
+
+    // Lista de processos em MP
+    printf("               LISTA DE PROCESSOS EM MP                \n");
+    printf("-------------------------------------------------------\n");
+    printf("     ID Processo   |    Qtde Páginas   | Tamanho (MB) \n");
+    printf("-------------------+-------------------+---------------\n");
     if(!aux) {
-        printf("NENHUM PROCESSO EM MP. \n");
-        return;
+        printf("        -1         |         0         |      0       \n");
+
+    } else {
+        while(aux) {
+            printf("        %d          |         %d         |      %d       \n", 
+                   aux->processo.id_processo, 
+                   aux->processo.qtd_paginas, 
+                   aux->processo.tam);
+            aux = aux->prox;
+        }
+        printf("-------------------------------------------------------\n");
     }
 
-    while(aux){
-        printf("Processo %d - ", aux->processo.id_processo);
-        aux = aux->prox;
-    }
-    printf("FIM. \n");
-
-    printf("LISTA DE PRONTOS: \n");
+    // Lista de prontos
+    printf("-------------------------------------------------------\n");
+    printf("\n\n                 LISTA DE PRONTOS:                 \n");
+    printf("-------------------------------------------------------\n");
+    printf("     ID Processo   |    Fila   \n");
+    printf("-------------------+-----------------------------------\n");
     aux = ram.prontosRQ0;
-    if(!aux) printf("NENHUM PROCESSO PRONTO. \n");
-    while(aux){
-        printf("Processo %d em RQ0 - ", aux->processo.id_processo);
-        aux = aux->prox;
+    if(!aux) {
+        printf("        -1         |    RQ0   \n");
+    } else {
+        while(aux) {
+            printf("         %d         |    RQ0   \n",aux->processo.id_processo);
+            aux = aux->prox;
+        }
     }
 
     aux = ram.prontosRQ1;
-    if(!aux) printf("NENHUM PROCESSO PRONTO. \n");
-    while(aux){
-        printf("Processo %d em RQ1 - ", aux->processo.id_processo);
-        aux = aux->prox;
+    if(!aux) {
+        printf("        -1         |    RQ1   \n");
+    } else {
+        while(aux) {
+            printf("         %d         |    RQ1   \n",aux->processo.id_processo);
+            aux = aux->prox;
+        }
     }
 
     aux = ram.prontosRQ2;
-    if(!aux) printf("NENHUM PROCESSO PRONTO. \n");
-    while(aux){
-        printf("Processo %d em RQ2 - ", aux->processo.id_processo);
-        aux = aux->prox;
+    if(!aux) {
+        printf("        -1         |    RQ2   \n");
+    } else {
+        while(aux) {
+            printf("         %d         |    RQ2   \n",aux->processo.id_processo);
+            aux = aux->prox;
+        }
     }
-    printf("FIM. \n");
+    printf("-------------------------------------------------------\n");
 
-    printf("LISTA DE BLOQUEADOS: \n");
+    // Lista de bloqueados
+    printf("\n\n                LISTA DE BLOQUEADOS:                \n");
+
+    printf("-------------------------------------------------------\n");
+    printf("  ID Processo |\n");
+    printf("--------------+----------------------------------------\n");
     aux = ram.bloqueados;
-    if(!aux) printf("NENHUM PROCESSO BLOQUEADO. \n");
-    
-    while(aux){
-        printf("Processo %d - ", aux->processo.id_processo);
-        aux = aux->prox;
+    if(!aux) {
+        printf("     -1       |\n");
+    } else {
+        while(aux) {
+            printf("       %d     |\n", aux->processo.id_processo);
+            aux = aux->prox;
+        }
     }
-    printf("FIM. \n");
+    printf("-------------------------------------------------------\n\n");
 
-    printf("numero total de paginas: %d \n", ram.numero_paginas);
-    printf("numero de paginas disponiveis: %d \n", ram.paginas_disponiveis);
+    // Informações sobre páginas
+    printf("Numero total de paginas:        %d\n", ram.numero_paginas);
+    printf("Numero de paginas disponiveis:  %d\n\n", ram.paginas_disponiveis);
+    printf("-------------------------------------------------------\n");
 }
 
 P busca_processo_ARM(ARM disco_rigido, P processos){
