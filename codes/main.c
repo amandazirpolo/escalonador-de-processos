@@ -6,6 +6,8 @@ int main(){
     DMA disco1, disco2, disco3, disco4;
     ARM disco_rigido;
     int tempo = 0;
+    int n_discos = 4;
+    
 
     inicializa_hardware(&ram, &disco1, &disco2, &disco3, &disco4,
         &disco_rigido, &cpu1, &cpu2, &cpu3, &cpu4);
@@ -17,12 +19,12 @@ int main(){
 
     fclose(arquivo);
 
-    visualiza_DMA(disco1);
-    visualiza_DMA(disco2);
-    visualiza_DMA(disco3);
-    visualiza_DMA(disco4);
+    DMA discos[] = {disco1, disco2, disco3, disco4};
+    apresentacao();
+    visualiza_DMA(discos, n_discos);
 
-    printf("ANTES DE PREENCHER A MP \n");
+    printf("Preenchendo a Memória Principal... \n\n");
+    usleep(1000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
@@ -32,34 +34,29 @@ int main(){
         tmp = tmp->prox;
     }
     tmp = disco_rigido.processos;
-    while(tmp){
-        printf("processo %d: ", tmp->processo.id_processo);
-        printf("numero de paginas que ele precisa: %d - ", tmp->processo.qtd_paginas);
-        printf("tam do processo: %d \n", tmp->processo.tam);
-        printf("fase que o processo esta: %d \n", fase_do_processo(tmp->processo));
-        tmp = tmp->prox;
-    }
+    resumo_processo(tmp);
     
-    printf("\n\nDEPOIS DE PREENCHER A MP \n");
+    printf("\n\n     Memória Principal preenchida com sucesso! \n\n");
+    // printf("\n\nDEPOIS DE PREENCHER A MP \n");
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
     CPU x = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
-    printf("CPU DISPONIVEL: %d \n\n", x.indice);
+    printf("\nCPU DISPONIVEL: CPU %d \n\n", x.indice);
 
     CPU aux1 = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
     CPU aux2 = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
 
     execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
     execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
-
-    visualiza_CPU(cpu1);
-    visualiza_CPU(cpu2);
-    visualiza_CPU(cpu3);
-    visualiza_CPU(cpu4);
-
+    
+    CPU cpus[] = {cpu1, cpu2,cpu3,cpu4};
+    int n_cpu = 4;
+    
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
+    visualiza_CPU(cpus, n_cpu);
+
 
     libera_fila(ram.processos);
     libera_fila(ram.prontosRQ0);
