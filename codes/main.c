@@ -28,7 +28,7 @@ int main(){
 
     F *tmp = disco_rigido.processos;
     while(tmp){
-        insere_MP(disco_rigido, &ram, tmp->processo);
+        insere_MP(disco_rigido, &ram, &tmp->processo);
         tmp = tmp->prox;
     }
     tmp = disco_rigido.processos;
@@ -62,7 +62,9 @@ int main(){
     visualiza_MP(ram);
 
     libera_fila(ram.processos);
-    libera_fila(ram.prontos);
+    libera_fila(ram.prontosRQ0);
+    libera_fila(ram.prontosRQ1);
+    libera_fila(ram.prontosRQ2);
     libera_fila(ram.bloqueados);
     libera_fila(disco_rigido.processos);
     libera_fila(disco_rigido.suspensos);

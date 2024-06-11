@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define QUANTUM 3
 #define NOVO 0
@@ -22,7 +23,7 @@ typedef struct processo {
     int controle_fase2;
     int tam;
     int estado; // definidos pelas variáveis globais
-    //int indice_fila;
+    int indice_fila; // define qual fila do feedback ele se encontra
     //int indice_cpu;
     //int indice_disco; 
     int numero_discos;
@@ -46,7 +47,9 @@ typedef struct ram {
     int numero_paginas; // para controlar o número de processos alocados na memória
     int paginas_disponiveis;
     F *processos;
-    F *prontos;
+    F *prontosRQ0;
+    F *prontosRQ1;
+    F *prontosRQ2;
     F *bloqueados;
 } MP;
 
@@ -74,6 +77,7 @@ F *busca_processo_fila(F *fila, P processo);
 
 // funções auxiliares
 int fase_do_processo(P processo);
+int verifica_fila(P processo);
 CPU cpu_disponivel(CPU cpu1, CPU cpu2, CPU cpu3, CPU cpu4);
 
 // funções de verificação
@@ -86,7 +90,9 @@ void visualiza_CPU (CPU indice_cpu);
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
 F *insere_na_fila(F *fila, P processo);
-void insere_MP(ARM disco_rigido, MP *ram, P processo);
+void insere_MP(ARM disco_rigido, MP *ram, P *processo);
+void swapper(ARM *disco_rigido, MP *ram);
+void gerencia_filas_feedback(F *processos);
 void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 F *retira_da_fila(F *fila, P processo);
@@ -95,10 +101,4 @@ F *retira_da_fila(F *fila, P processo);
 void libera_fila(F *fila);
 
 // codificação e decodificação de endereços virtuais
-
-void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int tamanho_pagina_bytes) {
-    uintptr_t virtual = (uintptr_t) endereco_virtual;
-    uintptr_t pagina = (uintptr_t) endereco_pagina;
-    uintptr_t offset = virtual % tamanho_pagina_bytes;
-    return (void*)(pagina + offset);
-}
+void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int tamanho_pagina_bytes);
