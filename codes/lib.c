@@ -100,12 +100,12 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo){
         }
     }
     else {
-        swapper(&disco_rigido, ram);
+        swapperMP(&disco_rigido, ram);
         insere_MP(disco_rigido, ram, processo);
     }
 }
 
-void swapper(ARM *disco_rigido, MP *ram) {
+void swapperMP(ARM *disco_rigido, MP *ram) {
     // Primeiro, pega um processo na memória principal para ser suspenso
     F *aux_ram = ram->processos;
     P aux_processo;
@@ -144,6 +144,53 @@ void swapper(ARM *disco_rigido, MP *ram) {
             // Atualiza o contexto do processo no armazenamento
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
             if (aux_processo_disco) aux_processo_disco->processo.estado = BLOQUEADO_SUSPENSO;
+        }
+    }
+}
+
+void swapperMS(ARM *disco_rigido, MP *ram) {
+    // Primeiro, verifica se há processos suspensos no disco rígido
+    F *aux_disco = disco_rigido->suspensos;
+    P aux_processo;
+
+    if (aux_disco) {
+        aux_processo = aux_disco->processo;
+
+        // Verifica se há memória disponível na RAM para o processo
+        if (ram->controle_memoria >= aux_processo.tam && ram->paginas_disponiveis >= aux_processo.qtd_paginas) {
+            // Retira o processo suspenso do disco rígido
+            disco_rigido->suspensos = retira_da_fila(disco_rigido->suspensos, aux_processo);
+
+            // Atualiza o contexto do processo
+            if (aux_processo.estado == PRONTO_SUSPENSO) {
+                aux_processo.estado = PRONTO;
+                // Verifica em qual fila do feedback o processo deve ser inserido
+                if (aux_processo.indice_fila == 0) 
+                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
+                else if (aux_processo.indice_fila == 1)
+                    ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, aux_processo);
+                else if (aux_processo.indice_fila == 2)
+                    ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, aux_processo);  
+            } else if (aux_processo.estado == BLOQUEADO_SUSPENSO) {
+                aux_processo.estado = BLOQUEADO;
+                ram->bloqueados = insere_na_fila(ram->bloqueados, aux_processo);
+            }
+
+            // Atualiza o controle da RAM
+            ram->controle_memoria -= aux_processo.tam;
+            ram->paginas_disponiveis -= aux_processo.qtd_paginas;
+
+            // Insere o processo na RAM
+            ram->processos = insere_na_fila(ram->processos, aux_processo);
+
+            // Atualiza o contexto do processo no armazenamento
+            F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
+            if (aux_processo_disco) {
+                if (aux_processo.estado == PRONTO) 
+                    aux_processo_disco->processo.estado = PRONTO;
+                else if (aux_processo.estado == BLOQUEADO) 
+                    aux_processo_disco->processo.estado = BLOQUEADO;
+            }
         }
     }
 }
