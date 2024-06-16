@@ -8,9 +8,21 @@ int main(){
     int tempo = 0;
     int n_discos = 4;
     
+    CPUS *cpus = NULL;
+    DMAS *dmas = NULL;
 
     inicializa_hardware(&ram, &disco1, &disco2, &disco3, &disco4,
         &disco_rigido, &cpu1, &cpu2, &cpu3, &cpu4);
+
+    cpus = insere_cpus(cpus,&cpu1);
+    cpus = insere_cpus(cpus,&cpu2);
+    cpus = insere_cpus(cpus,&cpu3);
+    cpus = insere_cpus(cpus,&cpu4);
+
+    dmas = insere_dma(dmas, &disco1);
+    dmas = insere_dma(dmas, &disco2);
+    dmas = insere_dma(dmas, &disco3);
+    dmas = insere_dma(dmas, &disco4);
 
     FILE *arquivo = fopen("arquivo.txt", "r");
     if(!arquivo) exit(1);
@@ -19,12 +31,13 @@ int main(){
 
     fclose(arquivo);
 
-    DMA discos[] = {disco1, disco2, disco3, disco4};
     apresentacao();
-    visualiza_DMA(discos, n_discos);
+    visualiza_DMA(dmas);
 
     printf("Preenchendo a Memória Principal... \n\n");
-    usleep(1000000);
+    visualiza_CPU(cpus);
+
+    usleep(2000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
@@ -34,28 +47,25 @@ int main(){
         tmp = tmp->prox;
     }
     tmp = disco_rigido.processos;
+    usleep(1000000);
     resumo_processo(tmp);
     
     printf("\n\n     Memória Principal preenchida com sucesso! \n\n");
     // printf("\n\nDEPOIS DE PREENCHER A MP \n");
+    usleep(1000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
-    CPU x = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
-    printf("\nCPU DISPONIVEL: CPU %d \n\n", x.indice);
-
-    CPU aux1 = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
-    CPU aux2 = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
-
+   
     execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
     execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
     
-    CPU cpus[] = {cpu1, cpu2,cpu3,cpu4};
-    int n_cpu = 4;
-    
+    usleep(1000000);
     visualiza_ARM(disco_rigido);
+    usleep(1000000);
     visualiza_MP(ram);
-    visualiza_CPU(cpus, n_cpu);
+    usleep(1000000);
+    visualiza_CPU(cpus);
 
 
     libera_fila(ram.processos);
@@ -65,6 +75,8 @@ int main(){
     libera_fila(ram.bloqueados);
     libera_fila(disco_rigido.processos);
     libera_fila(disco_rigido.suspensos);
+    libera_cpus(cpus);
+    libera_dma(dmas);
     
     return 0;
 }

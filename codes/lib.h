@@ -36,6 +36,11 @@ typedef struct cpu {
     int indice;
 } CPU;
 
+typedef struct cpus {
+    CPU *cpu;
+    struct cpus *prox;
+} CPUS;
+
 typedef struct fila {
     P processo;
     struct fila *prox;
@@ -58,6 +63,11 @@ typedef struct disco {
     int indice;
     P processo; // vai funcionar igual a cpu, apenas 1 processo alocado por vez
 } DMA;
+
+typedef struct dmas {
+    DMA *disco;
+    struct dmas *prox;
+} DMAS;
 
 // essa struct nova vai servir como um hd, já que os discos usaremos para e/s
 typedef struct armazenamento {
@@ -82,16 +92,16 @@ int verifica_fila(P processo);
 CPU cpu_disponivel(CPU cpu1, CPU cpu2, CPU cpu3, CPU cpu4);
 
 // funções de verificação
-void visualiza_DMA(DMA discos[], int n);
+void visualiza_DMA(DMAS *discos);
 void visualiza_ARM (ARM disco_rigido);
 void visualiza_MP (MP ram);
-void visualiza_CPU(CPU cpus[], int n);
+void visualiza_CPU(CPUS *cpus);
 void apresentacao();
 void resumo_processo(F *tmp);
 
 // funções de criação
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
-    int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
+                int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
 F *insere_na_fila(F *fila, P processo);
 void insere_MP(ARM disco_rigido, MP *ram, P *processo);
 void swapper(ARM *disco_rigido, MP *ram);
@@ -105,3 +115,11 @@ void libera_fila(F *fila);
 
 // codificação e decodificação de endereços virtuais
 void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int tamanho_pagina_bytes);
+
+//Funções lista encadeada CPUs
+
+CPUS *insere_cpus(CPUS *lista, CPU *cpu);
+void libera_cpus(CPUS *lista);
+
+DMAS *insere_dma(DMAS *lista, DMA *disco);
+void libera_dma(DMAS *lista);
