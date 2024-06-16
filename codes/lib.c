@@ -1,10 +1,9 @@
 #include "lib.h"
-
+#include "memory_manager.c"
 /* funções vão nesse arquivo */
 void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
     // inicializa a ram
     ram->tam_total = 32768;
-    ram->controle_memoria = 0;
     ram->tamanho_pagina = 1024; // cada pagina tem 1024 MB
     ram->numero_paginas = ram->tam_total / ram->tamanho_pagina; // ao todo são 32 paginas
     ram->paginas_disponiveis = ram->numero_paginas;
@@ -67,7 +66,8 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if(((ram->tam_total - ram->controle_memoria) > 0) && (ram->paginas_disponiveis) > 0){
+    if((tem_memoria(ram->tam_total, processo->tam)) && 
+    (tem_pagina(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis))){
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
