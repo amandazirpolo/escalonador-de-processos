@@ -14,11 +14,13 @@ int main(){
     inicializa_hardware(&ram, &disco1, &disco2, &disco3, &disco4,
         &disco_rigido, &cpu1, &cpu2, &cpu3, &cpu4);
 
+    //adicionar cpus a lista encadeada
     cpus = insere_cpus(cpus,&cpu1);
     cpus = insere_cpus(cpus,&cpu2);
     cpus = insere_cpus(cpus,&cpu3);
     cpus = insere_cpus(cpus,&cpu4);
-
+    
+    //adicionar discos a lista encadeada
     dmas = insere_dma(dmas, &disco1);
     dmas = insere_dma(dmas, &disco2);
     dmas = insere_dma(dmas, &disco3);
