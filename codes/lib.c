@@ -1,10 +1,9 @@
 #include "lib.h"
-
+#include "memory_manager.c"
 /* funções vão nesse arquivo */
 void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
     // inicializa a ram
     ram->tam_total = 32768;
-    ram->controle_memoria = 0;
     ram->tamanho_pagina = 1024; // cada pagina tem 1024 MB
     ram->numero_paginas = ram->tam_total / ram->tamanho_pagina; // ao todo são 32 paginas
     ram->paginas_disponiveis = ram->numero_paginas;
@@ -67,7 +66,7 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if(((ram->tam_total - ram->controle_memoria) > 0) && (ram->paginas_disponiveis) > 0){
+    if(tem_pagina(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
@@ -275,16 +274,17 @@ int verifica_fila(P processo){
     return 2;
 }
 
-void visualiza_CPU(CPU cpus[], int n) {
+void visualiza_CPU(CPUS *cpus) {
+    if(!cpus) return;
+    CPUS *aux = cpus;
     printf("------------------------------------------------------------------------------\n");
     printf("                              ESTADO DAs CPUs                                  \n");
     printf("------------------------------------------------------------------------------\n");
     printf(" CPU |   Processo   | Tmp. Rest. Fase 1 | Tmp.  Rest. E/S | Tmp. Rest. Fase 2 \n");
     printf("-----+--------------+-------------------+-----------------+-------------------\n");
-    for (int i = 0; i < n; i++) {
-        CPU indice_cpu = cpus[i];
+    while (aux){
+        CPU indice_cpu = *aux->cpu;
         
-
         if (indice_cpu.processo.id_processo == -1) {
             printf(" %d   |     -1       |       -1          |       -1        |       -1        \n", indice_cpu.indice);
             printf("------------------------------------------------------------------------------\n");
@@ -298,6 +298,7 @@ void visualiza_CPU(CPU cpus[], int n) {
                     indice_cpu.processo.controle_fase2);
             printf("------------------------------------------------------------------------------\n");
         }
+        aux = aux->prox;
     }
 }
 
@@ -453,7 +454,10 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     return disco_rigido.processos;
 }
 
-void visualiza_DMA(DMA discos[], int n) {
+void visualiza_DMA(DMAS *discos) {
+    if(!discos) return;
+    DMAS *aux = discos;
+    int i = 0;
     // Imprimindo o cabeçalho da tabela
     printf("-------------------------------------------------------\n");
     printf("              TABELA DE ESTADOS DOS DISCOS              \n");
@@ -462,8 +466,8 @@ void visualiza_DMA(DMA discos[], int n) {
     printf("---------+---------------------------------------------\n");
 
     // Imprimindo o status de cada disco
-    for (int i = 0; i < n; i++) {
-        DMA disco = discos[i];
+    while(aux) {
+        DMA disco = *aux->disco;
 
         printf("Disco %d  | ", i+1);
         if (disco.processo.id_processo == -1) {
@@ -471,6 +475,8 @@ void visualiza_DMA(DMA discos[], int n) {
         } else {
             printf("Processo %d em disco\n", disco.processo.id_processo);
         }
+        i++;
+        aux = aux->prox;
     }
     printf("-------------------------------------------------------\n\n");
     
@@ -657,4 +663,41 @@ void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int 
     uintptr_t pagina = (uintptr_t) endereco_pagina;
     uintptr_t offset = virtual % tamanho_pagina_bytes;
     return (void*)(pagina + offset);
+}
+
+// Listas encaedadas
+// Listas encadeadas CPUS
+
+CPUS *insere_cpus(CPUS *lista, CPU *cpu){
+    CPUS *n = (CPUS*)malloc(sizeof(CPUS));
+    n->cpu = cpu;
+    n->prox = lista;
+    return n;
+}
+
+void libera_cpus(CPUS *lista){
+    CPUS *aux = lista, *tmp;
+    while(aux){
+        tmp = aux;
+        aux = aux->prox;
+        free(tmp);
+    }
+}
+
+// Listas encadeadas DMAS
+
+DMAS *insere_dma(DMAS *lista, DMA *disco){
+    DMAS *n = (DMAS*)malloc(sizeof(DMAS));
+    n->disco = disco;
+    n->prox = lista;
+    return n;
+}
+
+void libera_dma(DMAS *lista){
+    DMAS *aux = lista, *tmp;
+    while(aux){
+        tmp = aux;
+        aux = aux->prox;
+        free(tmp);
+    }
 }
