@@ -43,14 +43,14 @@ int main(){
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
-    F *tmp = disco_rigido.processos;
-    while(tmp){
-        insere_MP(disco_rigido, &ram, &tmp->processo);
-        tmp = tmp->prox;
-    }
-    tmp = disco_rigido.processos;
-    usleep(1000000);
-    resumo_processo(tmp);
+    // F *tmp = disco_rigido.processos;
+    // while(tmp){
+    //     insere_MP(disco_rigido, &ram, &tmp->processo);
+    //     tmp = tmp->prox;
+    // }
+    // tmp = disco_rigido.processos;
+    // usleep(1000000);
+    // resumo_processo(tmp);
     
     printf("\n\n     Memória Principal preenchida com sucesso! \n\n");
     // printf("\n\nDEPOIS DE PREENCHER A MP \n");
@@ -59,8 +59,12 @@ int main(){
     visualiza_MP(ram);
 
    
-    execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
-    execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
+    execucao(&disco_rigido, &ram, cpus);
+    // execucao(&disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
+    // execucao(&disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
+    // execucao(&disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
+    // execucao(&disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
+    // execucao(&disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
     
     usleep(1000000);
     visualiza_ARM(disco_rigido);
