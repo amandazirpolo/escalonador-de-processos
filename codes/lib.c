@@ -169,7 +169,6 @@ void visualiza_CPU(CPUS *cpus) {
     while (aux){
         CPU indice_cpu = *aux->cpu;
         
-
         if (indice_cpu.processo.id_processo == -1) {
             printf(" %d   |     -1       |       -1          |       -1        |       -1        \n", indice_cpu.indice);
             printf("------------------------------------------------------------------------------\n");
