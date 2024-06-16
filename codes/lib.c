@@ -164,13 +164,8 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
             // Atualiza o contexto do processo
             if (aux_processo.estado == PRONTO_SUSPENSO) {
                 aux_processo.estado = PRONTO;
-                // Verifica em qual fila do feedback o processo deve ser inserido
-                if (aux_processo.indice_fila == 0) 
-                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
-                else if (aux_processo.indice_fila == 1)
-                    ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, aux_processo);
-                else if (aux_processo.indice_fila == 2)
-                    ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, aux_processo);  
+                // Insere de volta na fila RQ0 do feedback
+                ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
             } else if (aux_processo.estado == BLOQUEADO_SUSPENSO) {
                 aux_processo.estado = BLOQUEADO;
                 ram->bloqueados = insere_na_fila(ram->bloqueados, aux_processo);
@@ -203,8 +198,8 @@ void gerencia_filas_feedback(MP *ram) {
         P *processo = &aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ0, movê-lo para RQ1
-        if (processo->tempoEmRQ0 >= QUANTUM) {
-            processo->tempoEmRQ0 = 0;
+        if (processo->tempoEmFila >= QUANTUM) {
+            processo->tempoEmFila = 0;
             processo->indice_fila = verifica_fila(*processo);
             ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, *processo);
             if (prev)
@@ -227,8 +222,8 @@ void gerencia_filas_feedback(MP *ram) {
         P *processo = &aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ1, movê-lo para RQ2
-        if (processo->tempoEmRQ1 >= QUANTUM) {
-            processo->tempoEmRQ1 = 0;
+        if (processo->tempoEmFila >= QUANTUM) {
+            processo->tempoEmFila = 0;
             processo->indice_fila = verifica_fila(*processo);
             ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, *processo);
             if (prev) 
@@ -251,8 +246,8 @@ void gerencia_filas_feedback(MP *ram) {
         P *processo = &aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ2, mantê-lo na mesma fila porem joga ele pro final da fila
-        if (processo->tempoEmRQ2 >= QUANTUM) {
-            processo->tempoEmRQ2 = 0;
+        if (processo->tempoEmFila >= QUANTUM) {
+            processo->tempoEmFila = 0;
             // Retirar o processo da posição atual
             if (prev)
                 prev->prox = aux->prox;
@@ -266,7 +261,8 @@ void gerencia_filas_feedback(MP *ram) {
             // Atualizar ponteiro auxiliar
             F *tmp = aux;
             aux = aux->prox;
-            free(tmp);        } else {
+            free(tmp);        
+        } else {
             prev = aux;
             aux = aux->prox;
         }

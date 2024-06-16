@@ -25,9 +25,7 @@ typedef struct processo {
     int tam;
     int estado; // definidos pelas variáveis globais
     int indice_fila; // define qual fila do feedback ele se encontra
-    int tempoEmRQ0;
-    int tempoEmRQ1;
-    int tempoEmRQ2;
+    int tempoEmFila;
     int numero_discos;
     int qtd_paginas;
 } P;
