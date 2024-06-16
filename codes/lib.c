@@ -195,8 +195,82 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
     }
 }
 
-void gerencia_filas_feedback(F *processos){
-    /* responsável por trocar as filas do feedback */
+void gerencia_filas_feedback(MP *ram) {
+    // Processa a fila prontosRQ0
+    F *aux = ram->prontosRQ0;
+    F *prev = NULL;
+    while (aux) {
+        P *processo = &aux->processo;
+
+        // Se o processo tiver excedido seu quantum na fila RQ0, movê-lo para RQ1
+        if (processo->tempoEmRQ0 >= QUANTUM) {
+            processo->tempoEmRQ0 = 0;
+            processo->indice_fila = verifica_fila(*processo);
+            ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, *processo);
+            if (prev)
+                prev->prox = aux->prox;
+            else 
+                ram->prontosRQ0 = aux->prox;
+            F *tmp = aux;
+            aux = aux->prox;
+            free(tmp);
+        } else {
+            prev = aux;
+            aux = aux->prox;
+        }
+    }
+
+    // Processa a fila prontosRQ1
+    aux = ram->prontosRQ1;
+    prev = NULL;
+    while (aux) {
+        P *processo = &aux->processo;
+
+        // Se o processo tiver excedido seu quantum na fila RQ1, movê-lo para RQ2
+        if (processo->tempoEmRQ1 >= QUANTUM) {
+            processo->tempoEmRQ1 = 0;
+            processo->indice_fila = verifica_fila(*processo);
+            ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, *processo);
+            if (prev) 
+                prev->prox = aux->prox;
+            else 
+                ram->prontosRQ1 = aux->prox;
+            F *tmp = aux;
+            aux = aux->prox;
+            free(tmp);
+        } else {
+            prev = aux;
+            aux = aux->prox;
+        }
+    }
+
+    // Processa a fila prontosRQ2
+    aux = ram->prontosRQ2;
+    prev = NULL;
+    while (aux) {
+        P *processo = &aux->processo;
+
+        // Se o processo tiver excedido seu quantum na fila RQ2, mantê-lo na mesma fila porem joga ele pro final da fila
+        if (processo->tempoEmRQ2 >= QUANTUM) {
+            processo->tempoEmRQ2 = 0;
+            // Retirar o processo da posição atual
+            if (prev)
+                prev->prox = aux->prox;
+            else 
+                ram->prontosRQ2 = aux->prox;
+            
+            // Inserir o processo no final da fila
+            aux->prox = NULL;
+            ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, *processo);
+
+            // Atualizar ponteiro auxiliar
+            F *tmp = aux;
+            aux = aux->prox;
+            free(tmp);        } else {
+            prev = aux;
+            aux = aux->prox;
+        }
+    }
 }
 
 int verifica_fila(P processo){

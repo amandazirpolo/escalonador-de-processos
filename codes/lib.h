@@ -25,8 +25,9 @@ typedef struct processo {
     int tam;
     int estado; // definidos pelas variáveis globais
     int indice_fila; // define qual fila do feedback ele se encontra
-    //int indice_cpu;
-    //int indice_disco; 
+    int tempoEmRQ0;
+    int tempoEmRQ1;
+    int tempoEmRQ2;
     int numero_discos;
     int qtd_paginas;
 } P;
@@ -96,7 +97,7 @@ F *insere_na_fila(F *fila, P processo);
 void insere_MP(ARM disco_rigido, MP *ram, P *processo);
 void swapperMP(ARM *disco_rigido, MP *ram);
 void swapperMS(ARM *disco_rigido, MP *ram);
-void gerencia_filas_feedback(F *processos);
+void gerencia_filas_feedback(MP *ram);
 void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 F *retira_da_fila(F *fila, P processo);
