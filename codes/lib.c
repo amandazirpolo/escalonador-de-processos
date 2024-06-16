@@ -358,9 +358,6 @@ void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
     case 1:
         processo.controle_fase1--;
         break;
-    case 2:
-        processo.duracao_es--;
-        break;
     case 3:
         processo.duracao_fase2--;
     default:
@@ -386,7 +383,7 @@ void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
     F *aux = ram->processos;
     while(aux){
         if(aux->processo.id_processo == processo.id_processo){
-            aux->processo = processo; //acho que o problema ta nessa linha
+            aux->processo = processo;
             aux->processo.indice_fila = -1;
             break;
         }
@@ -394,7 +391,7 @@ void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
     }
     
     // atualiza o contexto do processo no armazenamento
-    F *tmp_fila = ram->processos;
+    F *tmp_fila = disco_rigido.processos;
 
     while(tmp_fila){
         if(tmp_fila->processo.id_processo == processo.id_processo){
