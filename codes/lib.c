@@ -66,8 +66,7 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if((tem_memoria(ram->tam_total, processo->tam)) && 
-    (tem_pagina(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis))){
+    if(tem_pagina(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
