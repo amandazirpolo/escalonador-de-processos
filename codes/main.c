@@ -24,7 +24,7 @@ int main(){
     visualiza_DMA(discos, n_discos);
 
     printf("Preenchendo a Memória Principal... \n\n");
-    usleep(1000000);
+    // usleep(1000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 

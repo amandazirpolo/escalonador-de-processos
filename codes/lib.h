@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <unistd.h> // Comentar em caso de testes
+// #include <unistd.h> // Comentar em caso de testes
 
 #define QUANTUM 3
 #define NOVO 0
@@ -12,9 +12,29 @@
 #define BLOQUEADO_SUSPENSO 5
 #define SAIDA 6
 
+typedef struct pagina {
+    int i_quadro;
+    int presente_mp;
+    int modificado;
+} T_PAGINA;
+
+typedef struct tabela_paginas {
+    T_PAGINA* array_de_paginas; // array de paginas
+    int qtd_paginas;
+} T_TABELA_PAGINAS;
+
 /* estruturas vão nesse arquivo */
 typedef struct processo {
+    // basico
     int id_processo;
+    int tam;
+    int estado; // definidos pelas variáveis globais
+    int indice_fila; // define qual fila do feedback ele se encontra
+    T_TABELA_PAGINAS* tabela_paginas;
+    // int qtd_paginas; // deprecado, agora dentro de tabela_paginas
+
+
+    // contabilidade de tempo
     int chegada;
     int duracao_fase1;
     int controle_fase1;
@@ -22,14 +42,10 @@ typedef struct processo {
     int controle_es;
     int duracao_fase2;
     int controle_fase2;
-    int tam;
-    int estado; // definidos pelas variáveis globais
-    int indice_fila; // define qual fila do feedback ele se encontra
     int tempoEmRQ0;
     int tempoEmRQ1;
     int tempoEmRQ2;
     int numero_discos;
-    int qtd_paginas;
 } P;
 
 typedef struct cpu {
@@ -65,6 +81,10 @@ typedef struct armazenamento {
     F *processos;
     F *suspensos;
 } ARM;
+
+
+
+
 
 /* cabeçalho das funções vão nesse arquivo */
 
@@ -104,6 +124,3 @@ F *retira_da_fila(F *fila, P processo);
 
 // funções de desalocação
 void libera_fila(F *fila);
-
-// codificação e decodificação de endereços virtuais
-void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int tamanho_pagina_bytes);
