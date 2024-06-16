@@ -1,10 +1,9 @@
 #include "lib.h"
-
+#include "memory_manager.c"
 /* funções vão nesse arquivo */
 void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
     // inicializa a ram
     ram->tam_total = 32768;
-    ram->controle_memoria = 0;
     ram->tamanho_pagina = 1024; // cada pagina tem 1024 MB
     ram->numero_paginas = ram->tam_total / ram->tamanho_pagina; // ao todo são 32 paginas
     ram->paginas_disponiveis = ram->numero_paginas;
@@ -67,7 +66,7 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if(((ram->tam_total - ram->controle_memoria) > 0) && (ram->paginas_disponiveis) > 0){
+    if(tem_pagina(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
@@ -100,12 +99,12 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo){
         }
     }
     else {
-        swapper(&disco_rigido, ram);
+        swapperMP(&disco_rigido, ram);
         insere_MP(disco_rigido, ram, processo);
     }
 }
 
-void swapper(ARM *disco_rigido, MP *ram) {
+void swapperMP(ARM *disco_rigido, MP *ram) {
     // Primeiro, pega um processo na memória principal para ser suspenso
     F *aux_ram = ram->processos;
     P aux_processo;
@@ -148,8 +147,129 @@ void swapper(ARM *disco_rigido, MP *ram) {
     }
 }
 
-void gerencia_filas_feedback(F *processos){
-    /* responsável por trocar as filas do feedback */
+void swapperMS(ARM *disco_rigido, MP *ram) {
+    // Primeiro, verifica se há processos suspensos no disco rígido
+    F *aux_disco = disco_rigido->suspensos;
+    P aux_processo;
+
+    if (aux_disco) {
+        aux_processo = aux_disco->processo;
+
+        // Verifica se há memória disponível na RAM para o processo
+        if (ram->controle_memoria >= aux_processo.tam && ram->paginas_disponiveis >= aux_processo.qtd_paginas) {
+            // Retira o processo suspenso do disco rígido
+            disco_rigido->suspensos = retira_da_fila(disco_rigido->suspensos, aux_processo);
+
+            // Atualiza o contexto do processo
+            if (aux_processo.estado == PRONTO_SUSPENSO) {
+                aux_processo.estado = PRONTO;
+                // Verifica em qual fila do feedback o processo deve ser inserido
+                if (aux_processo.indice_fila == 0) 
+                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
+                else if (aux_processo.indice_fila == 1)
+                    ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, aux_processo);
+                else if (aux_processo.indice_fila == 2)
+                    ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, aux_processo);  
+            } else if (aux_processo.estado == BLOQUEADO_SUSPENSO) {
+                aux_processo.estado = BLOQUEADO;
+                ram->bloqueados = insere_na_fila(ram->bloqueados, aux_processo);
+            }
+
+            // Atualiza o controle da RAM
+            ram->controle_memoria -= aux_processo.tam;
+            ram->paginas_disponiveis -= aux_processo.qtd_paginas;
+
+            // Insere o processo na RAM
+            ram->processos = insere_na_fila(ram->processos, aux_processo);
+
+            // Atualiza o contexto do processo no armazenamento
+            F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
+            if (aux_processo_disco) {
+                if (aux_processo.estado == PRONTO) 
+                    aux_processo_disco->processo.estado = PRONTO;
+                else if (aux_processo.estado == BLOQUEADO) 
+                    aux_processo_disco->processo.estado = BLOQUEADO;
+            }
+        }
+    }
+}
+
+void gerencia_filas_feedback(MP *ram) {
+    // Processa a fila prontosRQ0
+    F *aux = ram->prontosRQ0;
+    F *prev = NULL;
+    while (aux) {
+        P *processo = &aux->processo;
+
+        // Se o processo tiver excedido seu quantum na fila RQ0, movê-lo para RQ1
+        if (processo->tempoEmRQ0 >= QUANTUM) {
+            processo->tempoEmRQ0 = 0;
+            processo->indice_fila = verifica_fila(*processo);
+            ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, *processo);
+            if (prev)
+                prev->prox = aux->prox;
+            else 
+                ram->prontosRQ0 = aux->prox;
+            F *tmp = aux;
+            aux = aux->prox;
+            free(tmp);
+        } else {
+            prev = aux;
+            aux = aux->prox;
+        }
+    }
+
+    // Processa a fila prontosRQ1
+    aux = ram->prontosRQ1;
+    prev = NULL;
+    while (aux) {
+        P *processo = &aux->processo;
+
+        // Se o processo tiver excedido seu quantum na fila RQ1, movê-lo para RQ2
+        if (processo->tempoEmRQ1 >= QUANTUM) {
+            processo->tempoEmRQ1 = 0;
+            processo->indice_fila = verifica_fila(*processo);
+            ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, *processo);
+            if (prev) 
+                prev->prox = aux->prox;
+            else 
+                ram->prontosRQ1 = aux->prox;
+            F *tmp = aux;
+            aux = aux->prox;
+            free(tmp);
+        } else {
+            prev = aux;
+            aux = aux->prox;
+        }
+    }
+
+    // Processa a fila prontosRQ2
+    aux = ram->prontosRQ2;
+    prev = NULL;
+    while (aux) {
+        P *processo = &aux->processo;
+
+        // Se o processo tiver excedido seu quantum na fila RQ2, mantê-lo na mesma fila porem joga ele pro final da fila
+        if (processo->tempoEmRQ2 >= QUANTUM) {
+            processo->tempoEmRQ2 = 0;
+            // Retirar o processo da posição atual
+            if (prev)
+                prev->prox = aux->prox;
+            else 
+                ram->prontosRQ2 = aux->prox;
+            
+            // Inserir o processo no final da fila
+            aux->prox = NULL;
+            ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, *processo);
+
+            // Atualizar ponteiro auxiliar
+            F *tmp = aux;
+            aux = aux->prox;
+            free(tmp);        } else {
+            prev = aux;
+            aux = aux->prox;
+        }
+    }
 }
 
 int verifica_fila(P processo){
