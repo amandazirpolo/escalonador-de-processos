@@ -1,6 +1,3 @@
-#include <stdio.h>;
-#include <stdlib.h>;
-#include "lib.h"
 #include "memory_manager.h"
 
 int tem_memoria(int total_ram, int tamanho_processo){
