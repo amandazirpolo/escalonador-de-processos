@@ -13,24 +13,26 @@ int main(){
 
     inicializa_hardware(&ram, &disco1, &disco2, &disco3, &disco4,
         &disco_rigido, &cpu1, &cpu2, &cpu3, &cpu4);
-
+    printf("hardware inicializado \n");
     //adicionar cpus a lista encadeada
     cpus = insere_cpus(cpus,&cpu1);
     cpus = insere_cpus(cpus,&cpu2);
     cpus = insere_cpus(cpus,&cpu3);
     cpus = insere_cpus(cpus,&cpu4);
-    
+    printf("cpus inseridas \n");
+
     //adicionar discos a lista encadeada
     dmas = insere_dma(dmas, &disco1);
     dmas = insere_dma(dmas, &disco2);
     dmas = insere_dma(dmas, &disco3);
     dmas = insere_dma(dmas, &disco4);
+    printf("dmas inseridos \n");
 
     FILE *arquivo = fopen("arquivo.txt", "r");
     if(!arquivo) exit(1);
-
+    printf("tentando inicializar processos\n");
     inicializa_processos(arquivo, &disco_rigido, ram);
-
+    printf("processos inicializados\n");
     fclose(arquivo);
 
     apresentacao();

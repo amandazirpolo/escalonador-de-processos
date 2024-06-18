@@ -1,6 +1,45 @@
 #include "lib.h"
-#include "memory_manager.c"
 /* funções vão nesse arquivo */
+
+int tem_memoria(int total_ram, int tamanho_processo){
+    return total_ram - tamanho_processo;
+}
+
+int calcula_paginas_processo(int tamanho_processo, int tamanho_pagina) {
+    return (tamanho_processo + tamanho_pagina - 1) / tamanho_pagina;
+}
+
+T_TABELA_PAGINAS* new_tabela_paginas(int qtd_paginas) {
+    T_TABELA_PAGINAS *tabela = (T_TABELA_PAGINAS *) malloc(sizeof(T_TABELA_PAGINAS));
+    if (!tabela) {
+        exit(-1);
+    }
+    tabela->array_de_paginas = (T_PAGINA *) malloc(sizeof(T_PAGINA) * qtd_paginas);
+    if (!tabela->array_de_paginas) {
+        free(tabela);
+        exit(-1);
+    }
+    
+    tabela->qtd_paginas = qtd_paginas;
+    
+    for (int i = 0; i < qtd_paginas; i++) {
+        tabela->array_de_paginas[i].i_quadro = -1;
+        tabela->array_de_paginas[i].presente_mp = 0;
+        tabela->array_de_paginas[i].modificado = 0;
+    }
+    return tabela;
+}
+
+T_TABELA_PAGINAS* cria_paginas_processo(P* processo, int tamanho_pagina){
+    int qtd_paginas = calcula_paginas_processo(processo->tam, tamanho_pagina);
+    T_TABELA_PAGINAS* tabela = new_tabela_paginas(qtd_paginas);
+    return tabela;
+}
+
+int tem_pagina_disponivel(int tamanho_processo, int total_ram, int disponivel_ram, int tamanho_pagina, int paginas_disponiveis){
+    return paginas_disponiveis > calcula_paginas_processo(tamanho_processo, tamanho_pagina);
+}
+
 void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
     // inicializa a ram
     ram->tam_total = 32768;
@@ -47,6 +86,7 @@ void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *di
 void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
     P aux, tmp;
     int id = 1;
+    printf("entrando while\n");
     while(fscanf(arquivo, "%d, %d, %d, %d, %d, %d\n",
         &aux.chegada,
         &aux.duracao_fase1,
@@ -54,24 +94,33 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
         &aux.duracao_fase2,
         &aux.tam,
         &aux.numero_discos) == 6){
+            printf("buscando processo\n");
             tmp = busca_processo_ARM(*disco_rigido, aux);
             if(tmp.id_processo == -1){
+                printf("criando processo\n");
                 disco_rigido->processos = cria_processo(id, aux.chegada, aux.duracao_fase1,
                     aux.duracao_es, aux.duracao_fase2, aux.tam, aux.numero_discos, *disco_rigido, ram);
+                    printf("pre calcula_paginas_processo\n");
+                if (ram.paginas_disponiveis < calcula_paginas_processo(aux.tam, ram.tamanho_pagina)) {
+                    printf("swapper\n");
+                    swapperMS(disco_rigido, &ram);  // Chama o swapperMS para liberar memória
+                }
             }
-        id++;
+            id++;
         }
 }
+
+
 
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if(tem_pagina(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
+    if(tem_pagina_disponivel(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
         ram->controle_memoria = ram->controle_memoria - processo->tam;
-        ram->paginas_disponiveis = ram->paginas_disponiveis - processo->qtd_paginas;
+        ram->paginas_disponiveis = ram->paginas_disponiveis - processo->tabela_paginas->qtd_paginas;
         int tmp = verifica_fila(*processo);
         processo->indice_fila = tmp;
         switch (tmp){
@@ -119,7 +168,7 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
             // Depois, atualiza o contexto do processo suspenso
             aux_processo.estado = PRONTO_SUSPENSO;
             ram->controle_memoria += aux_processo.tam;
-            ram->paginas_disponiveis += aux_processo.qtd_paginas;
+            ram->paginas_disponiveis += aux_processo.tabela_paginas->qtd_paginas;
 
             // Insere o processo suspenso no disco rígido
             disco_rigido->suspensos = insere_na_fila(disco_rigido->suspensos, aux_processo);
@@ -135,7 +184,7 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
             // Depois, atualiza o contexto do processo suspenso
             aux_processo.estado = BLOQUEADO_SUSPENSO;
             ram->controle_memoria += aux_processo.tam;
-            ram->paginas_disponiveis += aux_processo.qtd_paginas;
+            ram->paginas_disponiveis += aux_processo.tabela_paginas->qtd_paginas;
 
             // Insere o processo suspenso no disco rígido
             disco_rigido->suspensos = insere_na_fila(disco_rigido->suspensos, aux_processo);
@@ -156,15 +205,20 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
         aux_processo = aux_disco->processo;
 
         // Verifica se há memória disponível na RAM para o processo
-        if (ram->controle_memoria >= aux_processo.tam && ram->paginas_disponiveis >= aux_processo.qtd_paginas) {
+        if (ram->controle_memoria >= aux_processo.tam && ram->paginas_disponiveis >= aux_processo.tabela_paginas->qtd_paginas) {
             // Retira o processo suspenso do disco rígido
             disco_rigido->suspensos = retira_da_fila(disco_rigido->suspensos, aux_processo);
 
             // Atualiza o contexto do processo
             if (aux_processo.estado == PRONTO_SUSPENSO) {
                 aux_processo.estado = PRONTO;
-                // Insere de volta na fila RQ0 do feedback
-                ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
+                // Insere de volta na fila correspondente a sua fila do feedback de antes de ter sido suspenso
+                if (aux_processo.indice_fila == 0)
+                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
+                if (aux_processo.indice_fila == 1)
+                    ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, aux_processo);
+                if (aux_processo.indice_fila == 2)
+                    ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, aux_processo);
             } else if (aux_processo.estado == BLOQUEADO_SUSPENSO) {
                 aux_processo.estado = BLOQUEADO;
                 ram->bloqueados = insere_na_fila(ram->bloqueados, aux_processo);
@@ -172,7 +226,7 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
 
             // Atualiza o controle da RAM
             ram->controle_memoria -= aux_processo.tam;
-            ram->paginas_disponiveis -= aux_processo.qtd_paginas;
+            ram->paginas_disponiveis -= aux_processo.tabela_paginas->qtd_paginas;
 
             // Insere o processo na RAM
             ram->processos = insere_na_fila(ram->processos, aux_processo);
@@ -189,7 +243,7 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
     }
 }
 
-void gerencia_filas_feedback(MP *ram) {
+void gerencia_filas_feedback(ARM *disco_rigido, MP *ram) {
     // Processa a fila prontosRQ0
     F *aux = ram->prontosRQ0;
     F *prev = NULL;
@@ -266,6 +320,8 @@ void gerencia_filas_feedback(MP *ram) {
             aux = aux->prox;
         }
     }
+    // Após mover processos entre as filas, chama o swapperMS para gerenciar a memória
+    swapperMS(disco_rigido, ram);
 }
 
 int verifica_fila(P processo){
@@ -340,6 +396,8 @@ void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
     if(processo.estado == PRONTO){
         insere_CPU(disco_rigido, ram, processo, indice_cpu);
     }
+    // Chama o swapperMS periodicamente durante a execução do escalonador
+    swapperMS(&disco_rigido, ram);
 }
 
 F *busca_processo_fila(F *fila, P processo){
@@ -420,24 +478,42 @@ F* insere_na_fila(F *fila, P processo){
 // insere os processos no disco de armazenamento
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
     int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram){
+        printf("malloc novo\n");
     F *novo = (F*)malloc(sizeof(F));
     if(!novo) exit(1);
+    printf("construindo atributos\n");
     // Guarda as infos nas estruturas necessárias
     novo->processo.id_processo = id_processo;
+    printf("id_processo atribuído: %d\n", novo->processo.id_processo);
     novo->processo.chegada = chegada;
+    printf("chegada atribuída: %d\n", novo->processo.chegada);
     novo->processo.duracao_fase1 = duracao_fase1;
+    printf("duracao_fase1 atribuída: %d\n", novo->processo.duracao_fase1);
     novo->processo.duracao_es = duracao_es;
+    printf("duracao_es atribuída: %d\n", novo->processo.duracao_es);
     novo->processo.duracao_fase2 = duracao_fase2;
+    printf("duracao_fase2 atribuída: %d\n", novo->processo.duracao_fase2);
     novo->processo.tam = tam;
-    novo->processo.qtd_paginas = (novo->processo.tam + ram.tamanho_pagina - 1) / ram.tamanho_pagina;
+    printf("tam atribuído: %d\n", novo->processo.tam);
+    novo->processo.tabela_paginas = cria_paginas_processo(&(novo->processo), ram.tamanho_pagina);
+    novo->processo.tabela_paginas->qtd_paginas = (novo->processo.tam + ram.tamanho_pagina - 1) / ram.tamanho_pagina;
+    printf("qtd_paginas atribuída: %d\n", novo->processo.tabela_paginas->qtd_paginas);
     novo->processo.controle_fase1 = novo->processo.duracao_fase1;
+    printf("controle_fase1 atribuído: %d\n", novo->processo.controle_fase1);
+
     novo->processo.controle_es = novo->processo.duracao_es;
+    printf("controle_es atribuído: %d\n", novo->processo.controle_es);
+
     novo->processo.controle_fase2 = novo->processo.duracao_fase2;
-    novo->processo.indice_fila = -1;  
+    printf("controle_fase2 atribuído: %d\n", novo->processo.controle_fase2);
+
+    novo->processo.indice_fila = -1;
+    printf("indice_fila atribuído: %d\n", novo->processo.indice_fila);
     // Foi carregado em memória, vai para o estado novo
     novo->processo.estado = NOVO;
     novo->processo.numero_discos = numero_discos;
     // Se a fila estiver nula, o novo processo se torna o primeiro da fila e retornamos ele
+    printf("atributos construidos");
     if(!disco_rigido.processos) {
         novo->prox = disco_rigido.processos;
         return novo;
@@ -543,7 +619,7 @@ void resumo_processo(F *tmp){
     while(tmp) {
     printf("     %d      |      %d       |      %d       |  %d\n", 
                tmp->processo.id_processo, 
-               tmp->processo.qtd_paginas, 
+               tmp->processo.tabela_paginas->qtd_paginas, 
                tmp->processo.tam, 
                fase_do_processo(tmp->processo));
         tmp = tmp->prox;
@@ -571,7 +647,7 @@ void visualiza_MP(MP ram) {
         while(aux) {
             printf("        %d          |         %d         |      %d       \n", 
                    aux->processo.id_processo, 
-                   aux->processo.qtd_paginas, 
+                   aux->processo.tabela_paginas->qtd_paginas, 
                    aux->processo.tam);
             aux = aux->prox;
         }
@@ -697,4 +773,17 @@ void libera_dma(DMAS *lista){
         aux = aux->prox;
         free(tmp);
     }
+}
+
+//Função que recebe um processo e a quantidade de discos que ele precisa para executar
+//Checa quantos discos estão disponíveis no momento, e caso tenha o suficiente ou mais, aloca disco para o processo
+//Se não houver suficientes não faz nada
+void insereProcessoNoDMA(){
+
+}
+
+//percorre o DMA e salva os processos que possuem 1 ou mais discos em uma lista
+//para cada processo na lista diminui em 1 o tempo necessario na fase de entrada e saida
+void executaDMA(){
+
 }
