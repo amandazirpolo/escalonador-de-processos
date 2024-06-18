@@ -30,9 +30,9 @@ int main(){
 
     FILE *arquivo = fopen("arquivo.txt", "r");
     if(!arquivo) exit(1);
-    printf("tentando inicializar processos\n");
+    printf("Inicializando processos...\n");
     inicializa_processos(arquivo, &disco_rigido, ram);
-    printf("processos inicializados\n");
+    printf("processos inicializados!\n");
     fclose(arquivo);
 
     apresentacao();
@@ -47,7 +47,8 @@ int main(){
 
     F *tmp = disco_rigido.processos;
     while(tmp){
-        insere_MP(disco_rigido, &ram, &tmp->processo);
+        // insere_MP(disco_rigido, &ram, &tmp->processo);
+        tmp->processo.estado = NOVO;
         tmp = tmp->prox;
     }
     tmp = disco_rigido.processos;
@@ -56,9 +57,12 @@ int main(){
     
     printf("\n\n     Memória Principal preenchida com sucesso! \n\n");
     // printf("\n\nDEPOIS DE PREENCHER A MP \n");
-    usleep(1000000);
+    execucao(&disco_rigido, &ram, cpus, &tempo);
+    usleep(3000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
+
+
     
     usleep(1000000);
     visualiza_ARM(disco_rigido);

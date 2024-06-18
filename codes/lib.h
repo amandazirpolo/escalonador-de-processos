@@ -126,7 +126,7 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo);
 void swapperMP(ARM *disco_rigido, MP *ram);
 void swapperMS(ARM *disco_rigido, MP *ram);
 void gerencia_filas_feedback(ARM *disco_rigido, MP *ram);
-void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
+void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp);
 void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 F *retira_da_fila(F *fila, P processo);
 int insere_processo_DMA(DMAS *dmas, P *processo);

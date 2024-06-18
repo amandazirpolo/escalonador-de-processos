@@ -419,12 +419,109 @@ int fase_do_processo(P processo){
         && (processo.controle_fase2 > 0)) return 3;
 }
 
-void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
-    if(processo.estado == PRONTO){
-        insere_CPU(disco_rigido, ram, processo, indice_cpu);
+void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
+    // Percorre a lista de processos na RAM
+    F *aux = disco_rigido->processos;
+    
+    while (aux) {
+        P *processo = &aux->processo;
+        printf("\n\nTEMPO %d ------------------------------------------------------\n\n", *tmp);
+        // Verifica o estado atual do processo e decide a ação apropriada
+        printf("\nINCIANDO EXECUÇÃO DO PROCESSO %d...\n\n", processo->id_processo);
+        printf("PROCESSO: %d\n", processo->id_processo);
+        printf("chegada: %d\n", processo->chegada);
+        printf("duracao_fase1: %d\n", processo->duracao_fase1);
+        printf("controle_fase1: %d\n", processo->controle_fase1);
+        printf("duracao_es: %d\n", processo->duracao_es);
+        printf("controle_es: %d\n", processo->controle_es);
+        printf("duracao_fase2: %d\n", processo->duracao_fase2);
+        printf("controle_fase2: %d\n", processo->controle_fase2);
+        printf("tam: %d\n", processo->tam);
+        printf("estado: %d\n", processo->estado);
+        printf("indice_fila: %d\n", processo->indice_fila);
+        printf("tempoEmFila: %d\n", processo->tempoEmFila);
+        printf("numero_discos: %d\n", processo->numero_discos);
+
+        printf("\nPROCESSO %d\nSTATUS: %d\n\n", processo->id_processo, processo->estado);
+        switch (processo->estado) {
+            case NOVO:
+
+                // Move o processo de NOVO para PRONTO
+                // processo->estado = PRONTO;
+                insere_MP(*disco_rigido, ram, processo);
+                resumo_processo(aux);
+                break;
+
+            case PRONTO:
+                // Tenta alocar o processo em uma CPU
+                CPU *cpu1 = cpus->cpu;
+                CPU *cpu2 = cpus->prox->cpu;
+                CPU *cpu3 = cpus->prox->prox->cpu;
+                CPU *cpu4 = cpus->prox->prox->prox->cpu;
+
+                CPU cpu_disp = cpu_disponivel(*cpu1, *cpu2, *cpu3, *cpu4);
+                if (cpu_disp.indice != -1) {
+                    insere_CPU(*disco_rigido, ram, *processo, &cpu_disp);
+                }
+                break;
+
+            case PRONTO_SUSPENSO:
+                // Tenta mover o processo de PRONTO_SUSPENSO para PRONTO
+                swapperMS(disco_rigido, ram);
+                break;
+
+            case BLOQUEADO:
+                // Se o processo está bloqueado, verifica se deve ser movido para BLOQUEADO_SUSPENSO
+                if (processo->duracao_es > 0) {
+                    // TODO: FAZER MODIFICAÇÕES
+                    processo->duracao_es--;
+                } else {
+                    processo->estado = PRONTO;
+                    ram->bloqueados = retira_da_fila(ram->bloqueados, *processo);
+                    insere_MP(*disco_rigido, ram, processo);
+                }
+                break;
+
+            case BLOQUEADO_SUSPENSO:
+                // Tenta mover o processo de BLOQUEADO_SUSPENSO para BLOQUEADO
+                swapperMS(disco_rigido, ram);
+                break;
+
+            case EXECUTANDO:
+                // Se o processo está executando, atualiza seu estado
+                if (processo->controle_fase1 > 0) {
+                    processo->controle_fase1--;
+                } else if (processo->controle_es > 0) {
+                    processo->estado = BLOQUEADO;
+                    ram->prontosRQ0 = retira_da_fila(ram->prontosRQ0, *processo);
+                    ram->bloqueados = insere_na_fila(ram->bloqueados, *processo);
+                } else if (processo->controle_fase2 > 0) {
+                    processo->controle_fase2--;
+                } else {
+                    processo->estado = SAIDA;
+                    libera_fila(ram->prontosRQ0);
+                }
+                break;
+
+            case SAIDA:
+                // Se o processo está terminado, libera seus recursos
+                ram->processos = retira_da_fila(ram->processos, *processo);
+                break;
+
+            default:
+                printf("Estado desconhecido do processo!\n");
+                break;
+        }
+
+        aux = aux->prox;
+        visualiza_CPU(cpus);
+
     }
-    // Chama o swapperMS periodicamente durante a execução do escalonador
-    swapperMS(&disco_rigido, ram);
+    *tmp++;
+    if(ram->prontosRQ0) execucao(disco_rigido, ram, cpus, tmp);
+
+    // Atualiza as filas de feedback
+    // gerencia_filas_feedback(ram);
 }
 
 F *busca_processo_fila(F *fila, P processo){
