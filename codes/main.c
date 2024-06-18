@@ -1,5 +1,5 @@
 #include "lib.c"
-
+#include "plot_memoria.c"
 int main(){
     CPU cpu1, cpu2, cpu3, cpu4;
     MP ram;
@@ -41,7 +41,6 @@ int main(){
     printf("Preenchendo a Memória Principal... \n\n");
     visualiza_CPU(cpus);
 
-    usleep(2000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
 
@@ -51,24 +50,18 @@ int main(){
         tmp = tmp->prox;
     }
     tmp = disco_rigido.processos;
-    usleep(1000000);
     resumo_processo(tmp);
     
     printf("\n\n     Memória Principal preenchida com sucesso! \n\n");
     // printf("\n\nDEPOIS DE PREENCHER A MP \n");
-    usleep(1000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
     
-    usleep(1000000);
     visualiza_ARM(disco_rigido);
-    usleep(1000000);
     visualiza_MP(ram);
-    usleep(1000000);
     visualiza_CPU(cpus);
-    int total_paginas;
-    int* resultado = paginas_na_memoria(ram.processos, &total_paginas);
-    
+    int* resultado = paginas_na_memoria(ram.processos, ram.numero_paginas, ram.tamanho_pagina);
+	plot_memory(resultado, ram.numero_paginas);
 
     libera_fila(ram.processos);
     libera_fila(ram.prontosRQ0);

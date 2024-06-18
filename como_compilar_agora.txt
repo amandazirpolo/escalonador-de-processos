@@ -1,0 +1,5 @@
+olá meus amigos
+com a inclusão da integração com python, python agora é uma dependência
+no meu linux, o comando abaixo funciona:
+
+gcc main.c -o main -I/usr/include/python3.10 -lpython3.10

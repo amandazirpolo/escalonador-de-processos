@@ -18,6 +18,17 @@ typedef struct pagina {
     int modificado;
 } T_PAGINA;
 
+typedef struct quadro {
+    int endereco_inicial;
+    int tamanho;
+} T_QUADRO;
+
+typedef struct bloco_livre{
+    int endereco_inicial;
+    int tamanho;
+    struct bloco_livre* prox;
+} T_BLOCO_LIVRE;
+
 typedef struct tabela_paginas {
     T_PAGINA* array_de_paginas; // array de paginas
     int qtd_paginas;
@@ -68,6 +79,8 @@ typedef struct ram {
     int tamanho_pagina; 
     int numero_paginas; 
     int paginas_disponiveis; 
+    T_QUADRO* array_quadros;
+    T_BLOCO_LIVRE* blocos_livres;
     F *processos;
     F *prontosRQ0;
     F *prontosRQ1;

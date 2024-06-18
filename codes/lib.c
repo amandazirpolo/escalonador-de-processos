@@ -40,8 +40,19 @@ int tem_pagina_disponivel(int tamanho_processo, int total_ram, int disponivel_ra
     return paginas_disponiveis > calcula_paginas_processo(tamanho_processo, tamanho_pagina);
 }
 
+T_BLOCO_LIVRE* cria_bloco_livre(int endereco_inicial,int tamanho_bytes){
+    T_BLOCO_LIVRE* bloco = (T_BLOCO_LIVRE*) malloc(sizeof(T_BLOCO_LIVRE));
+    if(!bloco){
+        printf("Erro no malloc do bloco livre\n");
+        exit(-1);
+    }
+    bloco->endereco_inicial = endereco_inicial;
+    bloco->tamanho = tamanho_bytes;
+    bloco->prox = NULL;
+}
+
 void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
-    // inicializa a ram
+    // inicializa a ram 
     ram->tam_total = 32768;
     ram->tamanho_pagina = 1024; // cada pagina tem 1024 MB
     ram->numero_paginas = ram->tam_total / ram->tamanho_pagina; // ao todo são 32 paginas
@@ -51,6 +62,7 @@ void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *di
     ram->prontosRQ1 = NULL;
     ram->prontosRQ2 = NULL;
     ram->bloqueados = NULL;
+    ram->blocos_livres = cria_bloco_livre(0, ram->tam_total);
 
     // inicializa os discos
     disco1->indice = 1;
@@ -112,6 +124,68 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram){
 }
 
 
+int total_quadros_bloco(T_BLOCO_LIVRE* bloco, int tamanho_quadro){
+    printf("tamanho: %d, tamanho_quadro: %d, endereco_inicial: %d\n", bloco->tamanho, tamanho_quadro, bloco->endereco_inicial);
+    return bloco->tamanho/tamanho_quadro;
+}
+
+int indice_pagina(int endereco_inicial, int tamanho_pagina){
+    printf("endereco_inicial = %d,tamanho pagina %d\n",endereco_inicial, tamanho_pagina);
+    return endereco_inicial / tamanho_pagina;
+}
+
+int first_fit(T_TABELA_PAGINAS* tabela_paginas , MP* ram) {
+    T_BLOCO_LIVRE* bloco_atual = ram->blocos_livres;
+    int qtd_paginas = tabela_paginas->qtd_paginas;
+    T_PAGINA* array_paginas = tabela_paginas->array_de_paginas;
+    int prox_pagina = 0;
+
+    // Verifica se há páginas a serem alocadas
+    if (qtd_paginas == 0) {
+        printf("qtd paginas = 0, saindo\n");
+        exit(-1);
+    }
+
+    while (bloco_atual != NULL) { // Percorre a lista de blocos livres
+        printf("calculando total quadros. bloco_atual\n");
+        int total_quadros = total_quadros_bloco(bloco_atual, ram->tamanho_pagina);
+        printf("entrando em for. total_quadros = %d, bloco_atual->tamanho = %d\n", total_quadros, bloco_atual->tamanho);
+        for (int i = 0; i < total_quadros && bloco_atual->tamanho > 0; i++) {
+            if (prox_pagina < qtd_paginas) {
+                // Atribui página ao quadro de memória
+                printf("alocando página %d\n", prox_pagina);
+                T_PAGINA* pagina_atual = &array_paginas[prox_pagina];
+                pagina_atual->endereco_inicial = bloco_atual->endereco_inicial;
+                pagina_atual->presente_mp = 1;
+                printf("sucesso ao alocar página %d\n", prox_pagina);
+
+                printf("endereco_inicial antigo: %d\n, antes de somar %d\n", bloco_atual->endereco_inicial, ram->tamanho_pagina);
+                bloco_atual->endereco_inicial += ram->tamanho_pagina;
+                printf("endereco_inicial novo: %d\n", bloco_atual->endereco_inicial);
+                printf("tamanho antigo: %d, antes de subtrair %d\n", bloco_atual->tamanho, ram->tamanho_pagina);
+                bloco_atual->tamanho -= ram->tamanho_pagina;
+                printf("tamanho novo: %d", bloco_atual->tamanho);
+                prox_pagina++;
+            } else {
+                return 1; // Todas as páginas foram alocadas
+            }
+        }
+        T_BLOCO_LIVRE* bloco_a_liberar = bloco_atual;
+        bloco_atual = bloco_atual->prox;
+        // se chegou até aqui, é porque o bloco acabou. então pode ser liberado
+        ram->blocos_livres = bloco_atual->prox; // pode ser null. ao liberar espaço na memória,
+        // deve-se considerar a possibilidade de blocos livres ser null e recriá-lo
+        free(bloco_a_liberar);
+        bloco_atual = ram->blocos_livres;
+    }
+
+    // Se sair do while sem alocar todas as páginas, retorna erro
+    if (prox_pagina < qtd_paginas) {
+        return 0; // Não foi possível alocar todas as páginas
+    }
+
+    return 1; // Sucesso
+}
 
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
@@ -120,9 +194,9 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo){
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
-        T_TABELA_PAGINAS* tabela_paginas = processo->tabela_paginas;
-        for (int i = 0; i < tabela_paginas->qtd_paginas; i++) {
-            tabela_paginas->array_de_paginas[i].presente_mp = 1;
+        if(!first_fit(processo->tabela_paginas, ram)){
+            printf("Erro ao realizar first fit. Saindo\n");
+            exit(-1);
         }
         
         ram->controle_memoria = ram->controle_memoria - processo->tam;
@@ -788,44 +862,37 @@ void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int 
     return (void*)(pagina + offset);
 }
 
-int* paginas_na_memoria(F* fila, int* total_paginas) {
-    // Primeiro, determinar o número total de páginas
-    int count = 0;
-    F* temp = fila;
-    while (temp != NULL) {
-        count += temp->processo.tabela_paginas->qtd_paginas;
-        temp = temp->prox;
-    }
 
-    // Alocar memória para o array de inteiros
-    int* paginas = (int*)malloc(count * sizeof(int));
-    if (paginas == NULL) {
-        fprintf(stderr, "Erro ao alocar memória\n");
+int* paginas_na_memoria(F* fila, int total_paginas, int tamanho_paginas) {
+    int* array = (int*)malloc(total_paginas * sizeof(int));
+    
+    if (array == NULL) {
+        printf("Erro de alocação de memória\n");
         return NULL;
     }
 
-    // Inicializar o array de páginas com 0
-    for (int i = 0; i < count; i++) {
-        paginas[i] = 0;
+    // Inicializa o array com zero
+    for (int i = 0; i < total_paginas; i++) {
+        array[i] = 0;
     }
 
-    // Preencher o array de páginas com o ID do processo se a página estiver na memória
-    int index = 0;
-    temp = fila;
-    while (temp != NULL) {
-        P processo_atual = temp->processo;
-        for (int i = 0; i < processo_atual.tabela_paginas->qtd_paginas; i++) {
-            if (processo_atual.tabela_paginas->array_de_paginas[i].presente_mp) {
-                paginas[index] = processo_atual.id_processo;
-            }
-            index++;
+    F* atual = fila;
+    while (atual != NULL) {
+        printf("mudando processo atual\n");
+        P processo = atual->processo;
+        for (int i = 0; i < processo.tabela_paginas->qtd_paginas; i++) {
+            printf("Recuperando página de índice %d/%d do processo %d\n", i,processo.tabela_paginas->qtd_paginas-1, processo.id_processo);
+            T_PAGINA pagina = processo.tabela_paginas->array_de_paginas[i];
+            int indice = indice_pagina(pagina.endereco_inicial, tamanho_paginas);
+            printf("Acessando índice %d de %d\n", indice, total_paginas-1);
+            array[indice] = processo.id_processo;
         }
-        temp = temp->prox;
+        atual = atual->prox;
     }
 
-    *total_paginas = count; // Atualiza o total de páginas
-    return paginas;
+    return array;
 }
+
 
 // Inserção das listas encaedadas
 
