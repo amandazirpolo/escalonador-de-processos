@@ -99,36 +99,36 @@ typedef struct armazenamento {
 // funções de inicialização
 void inicializa_hardware (MP *ram, DMA *disco1, DMA *disco2, DMA *disco3,
     DMA *disco4, ARM *disco_rigido, CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4);
-void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP ram);
+void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP *ram);
 
 // funções de busca 
-P busca_processo_ARM(ARM disco_rigido, P processos);
-F *busca_processo_fila(F *fila, P processo);
+P busca_processo_ARM(ARM *disco_rigido, P *processos);
+F *busca_processo_fila(F *fila, P *processo);
 
 // funções auxiliares
-int fase_do_processo(P processo);
-int verifica_fila(P processo);
-CPU cpu_disponivel(CPU cpu1, CPU cpu2, CPU cpu3, CPU cpu4);
+int fase_do_processo(P *processo);
+int verifica_fila(P *processo);
+CPU *cpu_disponivel(CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4);
 
 // funções de verificação
 void visualiza_DMA(DMAS *discos);
-void visualiza_ARM (ARM disco_rigido);
-void visualiza_MP (MP ram);
+void visualiza_ARM (ARM *disco_rigido);
+void visualiza_MP (MP *ram);
 void visualiza_CPU(CPUS *cpus);
 void apresentacao();
 void resumo_processo(F *tmp);
 
 // funções de criação
 F* cria_processo(int id_processo, int chegada, int duracao_fase1,
-                int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM disco_rigido, MP ram);
-F *insere_na_fila(F *fila, P processo);
+                int duracao_es, int duracao_fase2, int tam, int numero_discos, ARM *disco_rigido, MP *ram);
+F *insere_na_fila(F *fila, P *processo);
 void insere_MP(ARM disco_rigido, MP *ram, P *processo);
 void swapperMP(ARM *disco_rigido, MP *ram);
 void swapperMS(ARM *disco_rigido, MP *ram);
 void gerencia_filas_feedback(ARM *disco_rigido, MP *ram);
 void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp);
-void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
-F *retira_da_fila(F *fila, P processo);
+void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu);
+F *retira_da_fila(F *fila, P *processo);
 int insere_processo_DMA(DMAS *dmas, P *processo);
 void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido);
 
