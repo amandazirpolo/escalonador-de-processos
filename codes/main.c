@@ -76,7 +76,8 @@ int main(){
     libera_fila(ram.prontosRQ2);
     libera_fila(ram.bloqueados);
     libera_fila(disco_rigido.processos);
-    libera_fila(disco_rigido.suspensos);
+    libera_fila(disco_rigido.pronto_suspenso);
+    libera_fila(disco_rigido.bloqueado_suspenso);
     libera_cpus(cpus);
     libera_dma(dmas);
     

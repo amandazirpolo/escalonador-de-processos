@@ -90,7 +90,8 @@ typedef struct dmas {
 
 typedef struct armazenamento {
     F *processos;
-    F *suspensos;
+    F *pronto_suspenso;
+    F *bloqueado_suspenso;
 } ARM;
 
 /* cabeçalho das funções vão nesse arquivo */

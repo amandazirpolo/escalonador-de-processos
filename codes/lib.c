@@ -67,7 +67,8 @@ void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *di
 
     // inicializa o disco rígido
     disco_rigido->processos = NULL;
-    disco_rigido->suspensos = NULL;
+    disco_rigido->pronto_suspenso = NULL;
+    disco_rigido->bloqueado_suspenso = NULL;
 
     // inicializa as cpus
     cpu1->indice = 1;
@@ -177,7 +178,7 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
             ram->paginas_disponiveis += aux_processo.tabela_paginas->qtd_paginas;
 
             // Insere o processo suspenso no disco rígido
-            disco_rigido->suspensos = insere_na_fila(disco_rigido->suspensos, aux_processo);
+            disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_processo);
 
             // Atualiza o contexto do processo no armazenamento
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
@@ -193,7 +194,7 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
             ram->paginas_disponiveis += aux_processo.tabela_paginas->qtd_paginas;
 
             // Insere o processo suspenso no disco rígido
-            disco_rigido->suspensos = insere_na_fila(disco_rigido->suspensos, aux_processo);
+            disco_rigido->bloqueado_suspenso = insere_na_fila(disco_rigido->bloqueado_suspenso, aux_processo);
 
             // Atualiza o contexto do processo no armazenamento
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
@@ -204,45 +205,65 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
 
 void swapperMS(ARM *disco_rigido, MP *ram) {
     // Primeiro, verifica se há processos suspensos no disco rígido
-    F *aux_disco = disco_rigido->suspensos;
-    P aux_processo;
+    F *aux_disco_pronto = disco_rigido->pronto_suspenso;
+    F *aux_disco_bloqueado = disco_rigido->bloqueado_suspenso;
 
-    if (aux_disco) {
-        aux_processo = aux_disco->processo;
-
+    if (aux_disco_pronto || aux_disco_bloqueado) {
+        P aux_processo_bloqueado = aux_disco_bloqueado->processo;
+        P aux_processo_pronto = aux_disco_pronto->processo;
+        
         // Verifica se há memória disponível na RAM para o processo
-        if (ram->controle_memoria >= aux_processo.tam && ram->paginas_disponiveis >= aux_processo.tabela_paginas->qtd_paginas) {
-            // Retira o processo suspenso do disco rígido
-            disco_rigido->suspensos = retira_da_fila(disco_rigido->suspensos, aux_processo);
-
+        if (ram->controle_memoria >= aux_processo_pronto.tam && ram->paginas_disponiveis >= aux_processo_pronto.tabela_paginas->qtd_paginas) {
             // Atualiza o contexto do processo
-            if (aux_processo.estado == PRONTO_SUSPENSO) {
-                aux_processo.estado = PRONTO;
+            if (aux_processo_pronto.estado == PRONTO_SUSPENSO) {
+                // Retira o processo suspenso do disco rígido
+                disco_rigido->pronto_suspenso = retira_da_fila(disco_rigido->pronto_suspenso, aux_processo_pronto);
+
+                aux_processo_pronto.estado = PRONTO;
                 // Insere de volta na fila correspondente a sua fila do feedback de antes de ter sido suspenso
-                if (aux_processo.indice_fila == 0)
-                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo);
-                if (aux_processo.indice_fila == 1)
-                    ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, aux_processo);
-                if (aux_processo.indice_fila == 2)
-                    ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, aux_processo);
-            } else if (aux_processo.estado == BLOQUEADO_SUSPENSO) {
-                aux_processo.estado = BLOQUEADO;
-                ram->bloqueados = insere_na_fila(ram->bloqueados, aux_processo);
+                if (aux_processo_pronto.indice_fila == 0)
+                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo_pronto);
+                if (aux_processo_pronto.indice_fila == 1)
+                    ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, aux_processo_pronto);
+                if (aux_processo_pronto.indice_fila == 2)
+                    ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, aux_processo_pronto);
             }
 
             // Atualiza o controle da RAM
-            ram->controle_memoria -= aux_processo.tam;
-            ram->paginas_disponiveis -= aux_processo.tabela_paginas->qtd_paginas;
+            ram->controle_memoria -= aux_processo_pronto.tam;
+            ram->paginas_disponiveis -= aux_processo_pronto.tabela_paginas->qtd_paginas;
 
             // Insere o processo na RAM
-            ram->processos = insere_na_fila(ram->processos, aux_processo);
+            ram->processos = insere_na_fila(ram->processos, aux_processo_pronto);
 
             // Atualiza o contexto do processo no armazenamento
-            F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
+            F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo_pronto);
             if (aux_processo_disco) {
-                if (aux_processo.estado == PRONTO) 
+                if (aux_processo_pronto.estado == PRONTO) 
                     aux_processo_disco->processo.estado = PRONTO;
-                else if (aux_processo.estado == BLOQUEADO) 
+            }
+        }
+        else if (ram->controle_memoria >= aux_processo_bloqueado.tam && ram->paginas_disponiveis >= aux_processo_bloqueado.tabela_paginas->qtd_paginas) {
+            // Atualiza o contexto do processo
+            if (aux_processo_bloqueado.estado == BLOQUEADO_SUSPENSO) {
+                // Retira o processo suspenso do disco rígido
+                disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_processo_pronto);
+
+                aux_processo_bloqueado.estado = BLOQUEADO;
+                ram->bloqueados = insere_na_fila(ram->bloqueados, aux_processo_bloqueado);
+            }
+
+            // Atualiza o controle da RAM
+            ram->controle_memoria -= aux_processo_bloqueado.tam;
+            ram->paginas_disponiveis -= aux_processo_bloqueado.tabela_paginas->qtd_paginas;
+
+            // Insere o processo na RAM
+            ram->processos = insere_na_fila(ram->processos, aux_processo_bloqueado);
+
+            // Atualiza o contexto do processo no armazenamento
+            F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo_bloqueado);
+            if (aux_processo_disco) {
+                if (aux_processo_bloqueado.estado == BLOQUEADO) 
                     aux_processo_disco->processo.estado = BLOQUEADO;
             }
         }
@@ -933,10 +954,10 @@ void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
                     }
 
                     // Remove o processo da fila de bloqueados suspensos
-                    disco_rigido->suspensos = retira_da_fila(disco_rigido->suspensos, aux_lista->processo);
+                    disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
 
                     // Insere o processo no final da fila de prontos suspensos
-                    disco_rigido->suspensos = insere_na_fila(disco_rigido->suspensos, aux_lista->processo);
+                    disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
                 }
             }
         }
