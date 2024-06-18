@@ -59,10 +59,6 @@ int main(){
     usleep(1000000);
     visualiza_ARM(disco_rigido);
     visualiza_MP(ram);
-
-   
-    execucao(disco_rigido, &ram, disco_rigido.processos->processo, &cpu3);
-    execucao(disco_rigido, &ram, disco_rigido.processos->prox->processo, &cpu1);
     
     usleep(1000000);
     visualiza_ARM(disco_rigido);

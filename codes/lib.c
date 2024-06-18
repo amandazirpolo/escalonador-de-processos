@@ -1,6 +1,8 @@
 #include "lib.h"
 /* funções vão nesse arquivo */
 
+
+
 int tem_memoria(int total_ram, int tamanho_processo){
     return total_ram - tamanho_processo;
 }
@@ -23,7 +25,7 @@ T_TABELA_PAGINAS* new_tabela_paginas(int qtd_paginas) {
     tabela->qtd_paginas = qtd_paginas;
     
     for (int i = 0; i < qtd_paginas; i++) {
-        tabela->array_de_paginas[i].i_quadro = -1;
+        tabela->array_de_paginas[i].endereco_inicial = -1;
         tabela->array_de_paginas[i].presente_mp = 0;
         tabela->array_de_paginas[i].modificado = 0;
     }
@@ -410,55 +412,60 @@ F *busca_processo_fila(F *fila, P processo){
 
 void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
     // atualiza o contexto do processo
-    processo.estado = EXECUTANDO;
-    int fase = fase_do_processo(processo);
-    switch (fase){
-    case 1:
-        processo.controle_fase1--;
-        break;
-    case 3:
-        processo.duracao_fase2--;
-    default:
-        ("ERRO \n");
-        break;
-    }
-    // atualiza o contexto da mp
-    int tmp = verifica_fila(processo);
-    switch (tmp){
-        case 0:
-            ram->prontosRQ0 = retira_da_fila(ram->prontosRQ0, processo);
-            break;
+    // caso 1: processo acabou de chegar na cpu
+    if(processo.estado == PRONTO){
+        processo.estado = EXECUTANDO;
+        int fase = fase_do_processo(processo);
+        switch (fase){
         case 1:
-            ram->prontosRQ1 = retira_da_fila(ram->prontosRQ1, processo);
+            processo.controle_fase1--;
             break;
-        case 2:
-            ram->prontosRQ2 = retira_da_fila(ram->prontosRQ2, processo);
-            break;
+        case 3:
+            processo.duracao_fase2--;
         default:
-            break;
-    } 
-
-    F *aux = ram->processos;
-    while(aux){
-        if(aux->processo.id_processo == processo.id_processo){
-            aux->processo = processo;
-            aux->processo.indice_fila = -1;
+            ("ERRO \n");
             break;
         }
-        aux = aux->prox;
-    }
-    
-    // atualiza o contexto do processo no armazenamento
-    F *tmp_fila = disco_rigido.processos;
+        // atualiza o contexto da mp
+        int tmp = verifica_fila(processo);
+        switch (tmp){
+            case 0:
+                ram->prontosRQ0 = retira_da_fila(ram->prontosRQ0, processo);
+                break;
+            case 1:
+                ram->prontosRQ1 = retira_da_fila(ram->prontosRQ1, processo);
+                break;
+            case 2:
+                ram->prontosRQ2 = retira_da_fila(ram->prontosRQ2, processo);
+                break;
+            default:
+                break;
+        } 
 
-    while(tmp_fila){
-        if(tmp_fila->processo.id_processo == processo.id_processo){
-            tmp_fila->processo = processo;
-            tmp_fila->processo.indice_fila = -1;
-            break;
+        F *aux = ram->processos;
+        while(aux){
+            if(aux->processo.id_processo == processo.id_processo){
+                aux->processo = processo;
+                aux->processo.indice_fila = -1;
+                break;
+            }
+            aux = aux->prox;
         }
-        tmp_fila = tmp_fila->prox;
+        
+        // atualiza o contexto do processo no armazenamento
+        F *tmp_fila = disco_rigido.processos;
+
+        while(tmp_fila){
+            if(tmp_fila->processo.id_processo == processo.id_processo){
+                tmp_fila->processo = processo;
+                tmp_fila->processo.indice_fila = -1;
+                break;
+            }
+            tmp_fila = tmp_fila->prox;
+        } 
     }
+    // caso 2: o processo já esta em execução e só precisa decrementar
+    else if(processo.estado == EXECUTANDO){}
 
     // aloca na cpu
     indice_cpu->processo = processo;
@@ -738,9 +745,9 @@ void* endereco_real(void* endereco_virtual, void* endereco_pagina, unsigned int 
     return (void*)(pagina + offset);
 }
 
-// Listas encaedadas
-// Listas encadeadas CPUS
+// Inserção das listas encaedadas
 
+// Listas encadeadas CPUS
 CPUS *insere_cpus(CPUS *lista, CPU *cpu){
     CPUS *n = (CPUS*)malloc(sizeof(CPUS));
     n->cpu = cpu;
@@ -758,7 +765,6 @@ void libera_cpus(CPUS *lista){
 }
 
 // Listas encadeadas DMAS
-
 DMAS *insere_dma(DMAS *lista, DMA *disco){
     DMAS *n = (DMAS*)malloc(sizeof(DMAS));
     n->disco = disco;
@@ -775,15 +781,86 @@ void libera_dma(DMAS *lista){
     }
 }
 
-//Função que recebe um processo e a quantidade de discos que ele precisa para executar
-//Checa quantos discos estão disponíveis no momento, e caso tenha o suficiente ou mais, aloca disco para o processo
-//Se não houver suficientes não faz nada
-void insereProcessoNoDMA(){
+// Função que recebe um processo e a quantidade de discos que ele precisa para executar
+// Checa quantos discos estão disponíveis no momento, e caso tenha o suficiente ou mais, aloca disco para o processo
+// Se não houver suficientes não faz nada
+int insere_processo_DMA(DMAS *dmas, P *processo) {
+    int discos_necessarios = processo->numero_discos;
+    int discos_disponiveis = 0;
 
+    // Conta quantos discos estão disponíveis
+    DMAS *aux = dmas;
+    while (aux) {
+        if (aux->disco->processo.id_processo == -1) {
+            discos_disponiveis++;
+        }
+        aux = aux->prox;
+    }
+
+    // Se houver discos suficientes, aloca-os para o processo
+    if (discos_disponiveis >= discos_necessarios) {
+        aux = dmas;
+        while (aux && discos_necessarios > 0) {
+            if (aux->disco->processo.id_processo == -1) {
+                aux->disco->processo = *processo;
+                discos_necessarios--;
+            }
+            aux = aux->prox;
+        }
+        printf("Processo %d alocado em discos.\n", processo->id_processo);
+        return 1;
+    } else {
+        printf("Discos insuficientes para o processo %d.\n", processo->id_processo);
+        return 0;
+    }
 }
 
-//percorre o DMA e salva os processos que possuem 1 ou mais discos em uma lista
-//para cada processo na lista diminui em 1 o tempo necessario na fase de entrada e saida
-void executaDMA(){
+// Percorre o DMA e salva os processos que possuem 1 ou mais discos em uma lista
+// Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
+void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
+    // Cria uma lista para armazenar os processos que possuem discos alocados
+    F *lista_processos = NULL;
 
+    // Percorre os DMAs e adiciona os processos à lista
+    DMAS *aux = dmas;
+    while (aux) {
+        if (aux->disco->processo.id_processo != -1) {
+            lista_processos = insere_na_fila(lista_processos, aux->disco->processo);
+        }
+        aux = aux->prox;
+    }
+
+    // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
+    F *aux_lista = lista_processos;
+    while (aux_lista) {
+        if (aux_lista->processo.controle_es > 0) {
+            aux_lista->processo.controle_es--;
+            printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo.id_processo, aux_lista->processo.controle_es);
+
+            // Se o tempo de controle de E/S chegar a zero, mudar estado para PRONTO
+            if (aux_lista->processo.controle_es == 0) {
+                printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo.id_processo);
+                aux_lista->processo.estado = PRONTO;
+
+                // Remove o processo dos discos
+                DMAS *aux_dmas = dmas;
+                while (aux_dmas) {
+                    if (aux_dmas->disco->processo.id_processo == aux_lista->processo.id_processo) {
+                        aux_dmas->disco->processo.id_processo = -1;
+                    }
+                    aux_dmas = aux_dmas->prox;
+                }
+
+                // Remove o processo da fila de bloqueados
+                ram->bloqueados = retira_da_fila(ram->bloqueados, aux_lista->processo);
+
+                // Insere o processo na fila de prontos em RQ0
+                ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
+            }
+        }
+        aux_lista = aux_lista->prox;
+    }
+
+    // Libera a lista de processos
+    libera_fila(lista_processos);
 }

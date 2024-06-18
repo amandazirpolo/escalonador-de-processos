@@ -13,7 +13,8 @@
 #define SAIDA 6
 
 typedef struct pagina {
-    int i_quadro;
+    int endereco_inicial;
+    int tamanho;
     int presente_mp;
     int modificado;
 } T_PAGINA;
@@ -62,14 +63,12 @@ typedef struct fila {
     struct fila *prox;
 } F;
 
-
-
 typedef struct ram {
     int tam_total;
     int controle_memoria;
-    int tamanho_pagina;
-    int numero_paginas; // para controlar o número de processos alocados na memória
-    int paginas_disponiveis;
+    int tamanho_pagina; // eh padrao - definido na inicializa hardware = 1024
+    int numero_paginas; // para controlar o número de processos alocados na memória = 32
+    int paginas_disponiveis; // 32 = 32 - tam da pag do processo
     F *processos;
     F *prontosRQ0;
     F *prontosRQ1;
@@ -128,6 +127,8 @@ void gerencia_filas_feedback(ARM *disco_rigido, MP *ram);
 void execucao(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu);
 F *retira_da_fila(F *fila, P processo);
+int insere_processo_DMA(DMAS *dmas, P *processo);
+void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido);
 
 // funções de desalocação
 void libera_fila(F *fila);
