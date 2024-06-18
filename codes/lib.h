@@ -14,7 +14,6 @@
 
 typedef struct pagina {
     int endereco_inicial;
-    int tamanho;
     int presente_mp;
     int modificado;
 } T_PAGINA;
@@ -26,6 +25,7 @@ typedef struct tabela_paginas {
 
 
 /* estruturas vão nesse arquivo */
+
 typedef struct processo {
     // basico
     int id_processo;
@@ -34,7 +34,6 @@ typedef struct processo {
     int indice_fila; // define qual fila do feedback ele se encontra
     T_TABELA_PAGINAS* tabela_paginas;
     // int qtd_paginas; // deprecado, agora dentro de tabela_paginas
-
 
     // contabilidade de tempo
     int chegada;
@@ -66,9 +65,9 @@ typedef struct fila {
 typedef struct ram {
     int tam_total;
     int controle_memoria;
-    int tamanho_pagina; // eh padrao - definido na inicializa hardware = 1024
-    int numero_paginas; // para controlar o número de processos alocados na memória = 32
-    int paginas_disponiveis; // 32 = 32 - tam da pag do processo
+    int tamanho_pagina; 
+    int numero_paginas; 
+    int paginas_disponiveis; 
     F *processos;
     F *prontosRQ0;
     F *prontosRQ1;
@@ -78,7 +77,7 @@ typedef struct ram {
 
 typedef struct disco {
     int indice;
-    P processo; // vai funcionar igual a cpu, apenas 1 processo alocado por vez
+    P processo; 
 } DMA;
 
 typedef struct dmas {
@@ -87,6 +86,8 @@ typedef struct dmas {
 } DMAS;
 
 // essa struct nova vai servir como um hd, já que os discos usaremos para e/s
+
+
 typedef struct armazenamento {
     F *processos;
     F *suspensos;

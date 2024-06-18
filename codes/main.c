@@ -66,7 +66,9 @@ int main(){
     visualiza_MP(ram);
     usleep(1000000);
     visualiza_CPU(cpus);
-
+    int total_paginas;
+    int* resultado = paginas_na_memoria(ram.processos, &total_paginas);
+    
 
     libera_fila(ram.processos);
     libera_fila(ram.prontosRQ0);
