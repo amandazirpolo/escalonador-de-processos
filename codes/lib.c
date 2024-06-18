@@ -1,8 +1,6 @@
 #include "lib.h"
 /* funções vão nesse arquivo */
 
-
-
 int tem_memoria(int total_ram, int tamanho_processo){
     return total_ram - tamanho_processo;
 }
