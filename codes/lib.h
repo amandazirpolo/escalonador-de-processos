@@ -105,7 +105,7 @@ Struct Tipo CPU
 - int indice;
 */
 typedef struct cpu {
-    P processo;
+    P *processo;
     int indice;
 } CPU;
 
@@ -115,7 +115,7 @@ typedef struct cpus {
 } CPUS;
 
 typedef struct fila {
-    P processo;
+    P *processo;
     struct fila *prox;
 } F;
 
@@ -159,7 +159,7 @@ void inicializa_hardware (MP *ram, DMA *disco1, DMA *disco2, DMA *disco3,
 void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP *ram);
 
 // funções de busca 
-P busca_processo_ARM(ARM *disco_rigido, P *processos);
+P *busca_processo_ARM(ARM *disco_rigido, P *processos);
 F *busca_processo_fila(F *fila, P *processo);
 
 // funções auxiliares
@@ -184,7 +184,9 @@ void swapperMP(ARM *disco_rigido, MP *ram);
 void swapperMS(ARM *disco_rigido, MP *ram);
 void gerencia_filas_feedback(ARM *disco_rigido, MP *ram);
 void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp);
-void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu);
+CPU *processo_alocado(CPUS *cpus, P *processo);
+void retira_processo_da_CPU(P *processo, CPU *indice_cpu);
+void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu, CPUS *cpus);
 F *retira_da_fila(F *fila, P *processo);
 int insere_processo_DMA(DMAS *dmas, P *processo);
 void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido);

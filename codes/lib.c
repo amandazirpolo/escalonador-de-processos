@@ -46,11 +46,13 @@ Tabela de páginas devidamente incializada
 T_TABELA_PAGINAS* new_tabela_paginas(int qtd_paginas) {
     T_TABELA_PAGINAS *tabela = (T_TABELA_PAGINAS *) malloc(sizeof(T_TABELA_PAGINAS));
     if (!tabela) {
+        perror("Erro ao alocar memória para tabela de páginas");
         exit(-1);
     }
     tabela->array_de_paginas = (T_PAGINA *) malloc(sizeof(T_PAGINA) * qtd_paginas);
     if (!tabela->array_de_paginas) {
         free(tabela);
+        perror("Erro ao alocar memória para array de páginas");
         exit(-1);
     }
     
@@ -63,6 +65,7 @@ T_TABELA_PAGINAS* new_tabela_paginas(int qtd_paginas) {
     }
     return tabela;
 }
+
 
 T_TABELA_PAGINAS* cria_paginas_processo(P* processo, int tamanho_pagina){
     int qtd_paginas = calcula_paginas_processo(processo->tam, tamanho_pagina);
@@ -123,47 +126,66 @@ void inicializa_hardware(MP *ram, DMA *disco1, DMA *disco2, DMA *disco3, DMA *di
 
     // inicializa as cpus
     cpu1->indice = 1;
-    cpu1->processo.id_processo = -1;
+    cpu1->processo = (P*)malloc(sizeof(P));
+    if (!cpu1->processo) {
+        perror("Erro ao alocar memória para CPU 1");
+        exit(1);
+    }
+    cpu1->processo->id_processo = -1;
 
     cpu2->indice = 2;
-    cpu2->processo.id_processo = -1;
+    cpu2->processo = (P*)malloc(sizeof(P));
+    if (!cpu2->processo) {
+        perror("Erro ao alocar memória para CPU 2");
+        exit(1);
+    }
+    cpu2->processo->id_processo = -1;
 
     cpu3->indice = 3;
-    cpu3->processo.id_processo = -1;
+    cpu3->processo = (P*)malloc(sizeof(P));
+    if (!cpu3->processo) {
+        perror("Erro ao alocar memória para CPU 3");
+        exit(1);
+    }
+    cpu3->processo->id_processo = -1;
 
     cpu4->indice = 4;
-    cpu4->processo.id_processo = -1;
+    cpu4->processo = (P*)malloc(sizeof(P));
+    if (!cpu4->processo) {
+        perror("Erro ao alocar memória para CPU 4");
+        exit(1);
+    }
+    cpu4->processo->id_processo = -1;
 }
 
 void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP *ram) {
-    P aux;
+    P *aux = (P *)malloc(sizeof(P));
+    if (!aux) {
+        perror("Erro ao alocar memória para processo auxiliar");
+        exit(1);
+    }
     int id = 1;
 
-    // printf("entrando while\n");
-
     while (fscanf(arquivo, "%d, %d, %d, %d, %d, %d\n",
-                  &aux.chegada,
-                  &aux.duracao_fase1,
-                  &aux.duracao_es,
-                  &aux.duracao_fase2,
-                  &aux.tam,
-                  &aux.numero_discos) == 6) {
+                  &aux->chegada,
+                  &aux->duracao_fase1,
+                  &aux->duracao_es,
+                  &aux->duracao_fase2,
+                  &aux->tam,
+                  &aux->numero_discos) == 6) {
 
-        // printf("buscando processo\n");
-        P tmp = busca_processo_ARM(disco_rigido, &aux);
+        P *tmp = busca_processo_ARM(disco_rigido, aux);
         
-        if (tmp.id_processo == -1) {
-            // printf("criando processo\n");
-            F *novo_processo = cria_processo(id, aux.chegada, aux.duracao_fase1, aux.duracao_es, aux.duracao_fase2, aux.tam, aux.numero_discos, disco_rigido, ram);
+        if (tmp->id_processo == -1) {
+            F *novo_processo = cria_processo(id, aux->chegada, aux->duracao_fase1, aux->duracao_es, aux->duracao_fase2, aux->tam, aux->numero_discos, disco_rigido, ram);
             
-            // printf("pre calcula_paginas_processo\n");
-            if (ram->paginas_disponiveis < calcula_paginas_processo(aux.tam, ram->tamanho_pagina)) {
-                // printf("swapper\n");
+            if (ram->paginas_disponiveis < calcula_paginas_processo(aux->tam, ram->tamanho_pagina)) {
                 swapperMS(disco_rigido, ram);  // Chama o swapperMS para liberar memória
             }
         }
         id++;
     }
+    free(aux);
 }
 
 
@@ -223,8 +245,8 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo){
         // atualiza o contexto do processo no armazenamento
         F *aux = disco_rigido.processos;
         while(aux){
-            if(aux->processo.id_processo == processo->id_processo){
-                aux->processo.estado = PRONTO;
+            if(aux->processo->id_processo == processo->id_processo){
+                aux->processo->estado = PRONTO;
                 break;
             }
             aux = aux->prox;
@@ -245,7 +267,7 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
         ram->processos = retira_da_fila(ram->processos, aux_processo);
 
         if (aux_processo->estado == PRONTO){
-            aux_processo = &aux_ram->processo;
+            aux_processo = aux_ram->processo;
             ram->processos = retira_da_fila(ram->prontosRQ0, aux_processo);
             
             // Depois, atualiza o contexto do processo suspenso
@@ -258,10 +280,10 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
 
             // Atualiza o contexto do processo no armazenamento
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
-            if (aux_processo_disco) aux_processo_disco->processo.estado = PRONTO_SUSPENSO;
+            if (aux_processo_disco) aux_processo_disco->processo->estado = PRONTO_SUSPENSO;
         }
         else {
-            aux_processo = &aux_ram->processo;
+            aux_processo = aux_ram->processo;
             ram->processos = retira_da_fila(ram->bloqueados, aux_processo);
             
             // Depois, atualiza o contexto do processo suspenso
@@ -274,7 +296,7 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
 
             // Atualiza o contexto do processo no armazenamento
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo);
-            if (aux_processo_disco) aux_processo_disco->processo.estado = BLOQUEADO_SUSPENSO;
+            if (aux_processo_disco) aux_processo_disco->processo->estado = BLOQUEADO_SUSPENSO;
         }
     }
 }
@@ -285,8 +307,8 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
     F *aux_disco_bloqueado = disco_rigido->bloqueado_suspenso;
 
     if (aux_disco_pronto || aux_disco_bloqueado) {
-        P *aux_processo_bloqueado = &aux_disco_bloqueado->processo;
-        P *aux_processo_pronto = &aux_disco_pronto->processo;
+        P *aux_processo_bloqueado = aux_disco_bloqueado->processo;
+        P *aux_processo_pronto = aux_disco_pronto->processo;
         
         // Verifica se há memória disponível na RAM para o processo
         if (ram->controle_memoria >= aux_processo_pronto->tam && ram->paginas_disponiveis >= aux_processo_pronto->tabela_paginas->qtd_paginas) {
@@ -316,7 +338,7 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo_pronto);
             if (aux_processo_disco) {
                 if (aux_processo_pronto->estado == PRONTO) 
-                    aux_processo_disco->processo.estado = PRONTO;
+                    aux_processo_disco->processo->estado = PRONTO;
             }
         }
         else if (ram->controle_memoria >= aux_processo_bloqueado->tam && ram->paginas_disponiveis >= aux_processo_bloqueado->tabela_paginas->qtd_paginas) {
@@ -340,7 +362,7 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
             F *aux_processo_disco = busca_processo_fila(disco_rigido->processos, aux_processo_bloqueado);
             if (aux_processo_disco) {
                 if (aux_processo_bloqueado->estado == BLOQUEADO) 
-                    aux_processo_disco->processo.estado = BLOQUEADO;
+                    aux_processo_disco->processo->estado = BLOQUEADO;
             }
         }
     }
@@ -351,7 +373,7 @@ void gerencia_filas_feedback(ARM *disco_rigido, MP *ram) {
     F *aux = ram->prontosRQ0;
     F *prev = NULL;
     while (aux) {
-        P *processo = &aux->processo;
+        P *processo = aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ0, movê-lo para RQ1
         if (processo->tempoEmFila >= QUANTUM) {
@@ -375,7 +397,7 @@ void gerencia_filas_feedback(ARM *disco_rigido, MP *ram) {
     aux = ram->prontosRQ1;
     prev = NULL;
     while (aux) {
-        P *processo = &aux->processo;
+        P *processo = aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ1, movê-lo para RQ2
         if (processo->tempoEmFila >= QUANTUM) {
@@ -399,7 +421,7 @@ void gerencia_filas_feedback(ARM *disco_rigido, MP *ram) {
     aux = ram->prontosRQ2;
     prev = NULL;
     while (aux) {
-        P *processo = &aux->processo;
+        P *processo = aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ2, mantê-lo na mesma fila porem joga ele pro final da fila
         if (processo->tempoEmFila >= QUANTUM) {
@@ -459,19 +481,19 @@ void visualiza_CPU(CPUS *cpus) {
     printf(" CPU |   Processo   | Tmp. Rest. Fase 1 | Tmp.  Rest. E/S | Tmp. Rest. Fase 2 \n");
     printf("-----+--------------+-------------------+-----------------+-------------------\n");
     while (aux){
-        CPU indice_cpu = *aux->cpu;
+        CPU *indice_cpu = aux->cpu;
         
-        if (indice_cpu.processo.id_processo == -1) {
-            printf(" %d   |     -1       |       -1          |       -1        |       -1        \n", indice_cpu.indice);
+        if (indice_cpu->processo->id_processo == -1) {
+            printf(" %d   |     -1       |       -1          |       -1        |       -1        \n", indice_cpu->indice);
             printf("------------------------------------------------------------------------------\n");
 
         } else {
             printf(" %d   |      %d       |        %d          |        %d        |        %d        \n",
-                    indice_cpu.indice,
-                    indice_cpu.processo.id_processo,
-                    indice_cpu.processo.controle_fase1, 
-                    indice_cpu.processo.controle_es, 
-                    indice_cpu.processo.controle_fase2);
+                    indice_cpu->indice,
+                    indice_cpu->processo->id_processo,
+                    indice_cpu->processo->controle_fase1, 
+                    indice_cpu->processo->controle_es, 
+                    indice_cpu->processo->controle_fase2);
             printf("------------------------------------------------------------------------------\n");
         }
         aux = aux->prox;
@@ -481,7 +503,7 @@ void visualiza_CPU(CPUS *cpus) {
 F *retira_da_fila(F *fila, P *processo){
     processo->indice_fila = -1;
     F *atual = fila, *anterior = NULL;
-    while((atual) && (atual->processo.id_processo != processo->id_processo)){
+    while((atual) && (atual->processo->id_processo != processo->id_processo)){
         anterior = atual;
         atual = atual->prox;
     }
@@ -493,15 +515,30 @@ F *retira_da_fila(F *fila, P *processo){
 }
 
 CPU *cpu_disponivel(CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
-    if(cpu1->processo.id_processo == -1) return cpu1;
-    if(cpu2->processo.id_processo == -1) return cpu2;
-    if(cpu3->processo.id_processo == -1) return cpu3;
-    if(cpu4->processo.id_processo == -1) return cpu4;
-    CPU *tmp;
+    if(cpu1->processo->id_processo == -1) return cpu1;
+    if(cpu2->processo->id_processo == -1) return cpu2;
+    if(cpu3->processo->id_processo == -1) return cpu3;
+    if(cpu4->processo->id_processo == -1) return cpu4;
+    
+    // Corrigindo a alocação de memória para tmp
+    CPU *tmp = (CPU *)malloc(sizeof(CPU));
+    if (!tmp) {
+        perror("Erro ao alocar memória para CPU temporária");
+        exit(1);
+    }
+    
     tmp->indice = -1;
-    tmp->processo.id_processo = -1;
+    tmp->processo = (P *)malloc(sizeof(P));
+    if (!tmp->processo) {
+        perror("Erro ao alocar memória para o processo da CPU temporária");
+        free(tmp);
+        exit(1);
+    }
+    tmp->processo->id_processo = -1;
+    
     return tmp;
 }
+
 
 int fase_do_processo(P *processo){
     // retorna 1 se for a fase 1, 2 se for a fase de e/s e 3 se for a fase 2
@@ -515,11 +552,14 @@ int fase_do_processo(P *processo){
 
 void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
     while (disco_rigido->processos) {
-        // Percorre a lista de processos na RAM
         F *aux = disco_rigido->processos;
 
         while (aux) {
-            P *processo = &aux->processo;
+            if (!aux->processo) {
+                aux = aux->prox;
+                continue;
+            }
+            P *processo = aux->processo;
             printf("\n\nTEMPO %d ------------------------------------------------------\n\n", *tmp);
             // Verifica o estado atual do processo e decide a ação apropriada
             printf("\nINICIANDO EXECUÇÃO DO PROCESSO %d...\n\n", processo->id_processo);
@@ -540,6 +580,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
             printf("numero_discos     |  %d Discos alocados\n", processo->numero_discos);
             printf("------------------+------------------------\n");
 
+            CPU *cpu_alocada = processo_alocado(cpus, processo);
             switch (processo->estado) {
                 case NOVO:
                     insere_MP(*disco_rigido, ram, processo);
@@ -548,7 +589,6 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                     break;
 
                 case PRONTO:
-                    // Tenta alocar o processo em uma CPU
                     CPU *cpu1 = cpus->cpu;
                     CPU *cpu2 = cpus->prox->cpu;
                     CPU *cpu3 = cpus->prox->prox->cpu;
@@ -556,13 +596,13 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
 
                     CPU *cpu_disp = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
                     if (cpu_disp->indice != -1) {
-                        insere_CPU(disco_rigido, ram, processo, cpu_disp);
+                        insere_CPU(disco_rigido, ram, processo, cpu_disp, cpus);
                     }
                     break;
 
                 case PRONTO_SUSPENSO:
                     // Tenta mover o processo de PRONTO_SUSPENSO para PRONTO
-                    // swapperMS(disco_rigido, ram);
+                    swapperMS(disco_rigido, ram);
                     break;
 
                 case BLOQUEADO:
@@ -577,7 +617,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
 
                 case BLOQUEADO_SUSPENSO:
                     // Tenta mover o processo de BLOQUEADO_SUSPENSO para BLOQUEADO
-                    // swapperMS(disco_rigido, ram);
+                    swapperMS(disco_rigido, ram);
                     break;
 
                 case EXECUTANDO:
@@ -585,6 +625,8 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                     if (processo->controle_fase1 > 0) {
                         processo->controle_fase1--;
                     } else if (processo->controle_es > 0) {
+                        retira_processo_da_CPU(processo,cpu_alocada);
+
                         processo->controle_es--;
                         processo->estado = BLOQUEADO;
                         switch (processo->indice_fila){
@@ -606,13 +648,17 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                         processo->indice_fila = -1;
                         ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
                     } else if (processo->controle_fase2 > 0) {
+                        // retira_processo_da_CPU(processo,cpu_alocada);
+
                         processo->controle_fase2--;
                     } else {
+
                         processo->estado = SAIDA;
                         ram->processos = retira_da_fila(ram->processos, processo);
                         processo->indice_fila = -1;
                         // ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
                         disco_rigido->processos = retira_da_fila(disco_rigido->processos, processo);
+                        retira_processo_da_CPU(processo,cpu_alocada);
                     }
                     break;
 
@@ -631,6 +677,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
             aux = aux->prox;
             visualiza_ARM(disco_rigido);
             // visualiza_MP(*ram);
+            if(!disco_rigido->processos) break;;
         }
         visualiza_CPU(cpus);
 
@@ -645,96 +692,51 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
 
 F *busca_processo_fila(F *fila, P *processo){
     F *aux = fila;
-    while((aux) && (aux->processo.id_processo != processo->id_processo)){
+    while((aux) && (aux->processo->id_processo != processo->id_processo)){
         aux = aux->prox;
     }
     return aux;
 }
 
-void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu){
-    // atualiza o contexto do processo
-    // caso 1: processo acabou de chegar na cpu
-    if(processo->estado == PRONTO){
+CPU *processo_alocado(CPUS *cpus, P *processo) {
+    CPUS *aux = cpus;
+    while (aux) {
+        if (aux->cpu->processo->id_processo == processo->id_processo) {
+            return aux->cpu;
+        }
+        aux = aux->prox;
+    }
+    return NULL;
+}
+
+void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu, CPUS* cpus) {
+    if (processo && indice_cpu && !processo_alocado(cpus, processo)) {
         processo->estado = EXECUTANDO;
-        int fase = fase_do_processo(processo);
-        switch (fase){
-        case 1:
-            processo->controle_fase1--;
-            break;
-        case 3:
-            processo->duracao_fase2--;
-        default:
-            ("ERRO \n");
-            break;
-        }
-        // atualiza o contexto da mp
-        int tmp = verifica_fila(processo);
-        switch (tmp){
-            case 0:
-                ram->prontosRQ0 = retira_da_fila(ram->prontosRQ0, processo);
-                break;
-            case 1:
-                ram->prontosRQ1 = retira_da_fila(ram->prontosRQ1, processo);
-                break;
-            case 2:
-                ram->prontosRQ2 = retira_da_fila(ram->prontosRQ2, processo);
-                break;
-            default:
-                break;
-        } 
-
-        F *aux = ram->processos;
-        while(aux){
-            if(aux->processo.id_processo == processo->id_processo){
-                aux->processo = *processo;
-                aux->processo.indice_fila = -1;
-                break;
-            }
-            aux = aux->prox;
-        }
-        
-        // atualiza o contexto do processo no armazenamento
-        F *tmp_fila = disco_rigido->processos;
-
-        while(tmp_fila){
-            if(tmp_fila->processo.id_processo == processo->id_processo){
-                tmp_fila->processo = *processo;
-                tmp_fila->processo.indice_fila = -1;
-                break;
-            }
-            tmp_fila = tmp_fila->prox;
-        } 
+        indice_cpu->processo = processo;
+    } else {
+        printf("Erro: Parâmetros inválidos fornecidos para insere_CPU\n");
     }
-    // caso 2: o processo já esta em execução e só precisa decrementar
-    else if(processo->estado == EXECUTANDO){
-        int f = fase_do_processo(processo);
-        switch (f){
-        case 1:
-            processo->controle_fase1--;
-            break;
-        case 3:
-            processo->duracao_fase2--;
-        default:
-            ("ERRO \n");
-            break;
-        }
-    }
-    // caso 3: verifica o quantum
-    // executando -> pronto
-    // caso 4: checa entrada e saida
-    // executando -> bloqueado
-    // caso 5: ultima fase do processo
-    // executando -> terminado
+}
 
-    // atualiza a cpu
-    indice_cpu->processo = *processo;
+void retira_processo_da_CPU(P *processo, CPU *indice_cpu) {
+    if (processo && indice_cpu) {
+        indice_cpu->processo->estado = PRONTO; 
+        indice_cpu->processo = (P*)malloc(sizeof(P));
+        if (!indice_cpu->processo) {
+            perror("Erro ao alocar memória para CPU 2");
+            exit(1);
+        }
+        indice_cpu->processo->id_processo = -1;
+    } else {
+        printf("Erro: Parâmetros inválidos fornecidos para retira_processo_da_CPU\n");
+    }
 }
 
 F* insere_na_fila(F *fila, P *processo){
     if(!busca_processo_fila(fila, processo)){
         F *novo = (F*)malloc(sizeof(F));
         if(!novo) exit(1);
-        novo->processo = *processo;
+        novo->processo = processo;
         novo->prox = fila;
         return novo;
     }
@@ -750,24 +752,32 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
         exit(EXIT_FAILURE);
     }
 
-    novo->processo.id_processo = id_processo;
-    novo->processo.chegada = chegada;
-    novo->processo.duracao_fase1 = duracao_fase1;
-    novo->processo.controle_fase1 = duracao_fase1;
-    novo->processo.duracao_es = duracao_es;
-    novo->processo.controle_es = duracao_es;
-    novo->processo.duracao_fase2 = duracao_fase2;
-    novo->processo.controle_fase2 = duracao_fase2;
-    novo->processo.tam = tam;
-    novo->processo.numero_discos = numero_discos;
-    novo->processo.estado = NOVO;
-    novo->processo.indice_fila = -1;
-    novo->processo.tempoEmFila = 0;
+    novo->processo = (P *)malloc(sizeof(P)); // Inicializando novo->processo
+    if (!novo->processo) {
+        fprintf(stderr, "Erro ao alocar memória para o processo\n");
+        free(novo);
+        exit(EXIT_FAILURE);
+    }
+
+    novo->processo->id_processo = id_processo;
+    novo->processo->chegada = chegada;
+    novo->processo->duracao_fase1 = duracao_fase1;
+    novo->processo->controle_fase1 = duracao_fase1;
+    novo->processo->duracao_es = duracao_es;
+    novo->processo->controle_es = duracao_es;
+    novo->processo->duracao_fase2 = duracao_fase2;
+    novo->processo->controle_fase2 = duracao_fase2;
+    novo->processo->tam = tam;
+    novo->processo->numero_discos = numero_discos;
+    novo->processo->estado = NOVO;
+    novo->processo->indice_fila = -1;
+    novo->processo->tempoEmFila = 0;
 
     // Inicializa a tabela de páginas
-    novo->processo.tabela_paginas = cria_paginas_processo(&novo->processo, ram->tamanho_pagina);
-    if (!novo->processo.tabela_paginas) {
+    novo->processo->tabela_paginas = cria_paginas_processo(novo->processo, ram->tamanho_pagina);
+    if (!novo->processo->tabela_paginas) {
         fprintf(stderr, "Erro ao alocar memória para a tabela de páginas do processo\n");
+        free(novo->processo);
         free(novo);
         exit(EXIT_FAILURE);
     }
@@ -787,6 +797,7 @@ F* cria_processo(int id_processo, int chegada, int duracao_fase1,
 
     return disco_rigido->processos;
 }
+
 
 
 void visualiza_DMA(DMAS *discos) {
@@ -859,10 +870,10 @@ void visualiza_ARM(ARM *disco_rigido) {
 
     while(aux) {
         printf("%11d | %12d | %6d | %13d\n", 
-               aux->processo.id_processo, 
-               aux->processo.tam, 
-               aux->processo.estado, 
-               aux->processo.indice_fila);
+               aux->processo->id_processo, 
+               aux->processo->tam, 
+               aux->processo->estado, 
+               aux->processo->indice_fila);
         aux = aux->prox;
     }
 
@@ -880,10 +891,10 @@ void resumo_processo(F *tmp){
     // Listando os processos
     while(tmp) {
     printf("     %d      |      %d       |      %d       |  %d\n", 
-               tmp->processo.id_processo, 
-               tmp->processo.tabela_paginas->qtd_paginas, 
-               tmp->processo.tam, 
-               fase_do_processo(&tmp->processo));
+               tmp->processo->id_processo, 
+               tmp->processo->tabela_paginas->qtd_paginas, 
+               tmp->processo->tam, 
+               fase_do_processo(tmp->processo));
         tmp = tmp->prox;
     }
     printf("-------------------------------------------------------\n\n");
@@ -908,9 +919,9 @@ void visualiza_MP(MP *ram) {
     } else {
         while(aux) {
             printf("        %d          |         %d         |      %d       \n", 
-                   aux->processo.id_processo, 
-                   aux->processo.tabela_paginas->qtd_paginas, 
-                   aux->processo.tam);
+                   aux->processo->id_processo, 
+                   aux->processo->tabela_paginas->qtd_paginas, 
+                   aux->processo->tam);
             aux = aux->prox;
         }
         printf("-------------------------------------------------------\n");
@@ -927,7 +938,7 @@ void visualiza_MP(MP *ram) {
         printf("        -1         |    RQ0   \n");
     } else {
         while(aux) {
-            printf("         %d         |    RQ0   \n",aux->processo.id_processo);
+            printf("         %d         |    RQ0   \n",aux->processo->id_processo);
             aux = aux->prox;
         }
     }
@@ -937,7 +948,7 @@ void visualiza_MP(MP *ram) {
         printf("        -1         |    RQ1   \n");
     } else {
         while(aux) {
-            printf("         %d         |    RQ1   \n",aux->processo.id_processo);
+            printf("         %d         |    RQ1   \n",aux->processo->id_processo);
             aux = aux->prox;
         }
     }
@@ -947,7 +958,7 @@ void visualiza_MP(MP *ram) {
         printf("        -1         |    RQ2   \n");
     } else {
         while(aux) {
-            printf("         %d         |    RQ2   \n",aux->processo.id_processo);
+            printf("         %d         |    RQ2   \n",aux->processo->id_processo);
             aux = aux->prox;
         }
     }
@@ -964,7 +975,7 @@ void visualiza_MP(MP *ram) {
         printf("     -1       |\n");
     } else {
         while(aux) {
-            printf("       %d     |\n", aux->processo.id_processo);
+            printf("       %d     |\n", aux->processo->id_processo);
             aux = aux->prox;
         }
     }
@@ -976,19 +987,22 @@ void visualiza_MP(MP *ram) {
     printf("-------------------------------------------------------\n");
 }
 
-P busca_processo_ARM(ARM *disco_rigido, P *processos){
+P *busca_processo_ARM(ARM *disco_rigido, P *processos){
     F *aux = disco_rigido->processos;
 
     // procura no disco
     while(aux){
-        if(aux->processo.id_processo == processos->id_processo) return aux->processo;
+        if(aux->processo->id_processo == processos->id_processo) return aux->processo;
         aux= aux->prox;
     }
 
     // se não retornou, então o elemento não existe
-    P proc;
-    // se o id_processo for -1, elemento não existe
-    proc.id_processo = -1;
+    P *proc = (P *)malloc(sizeof(P));  // Aloca memória para proc
+    if (!proc) {
+        fprintf(stderr, "Erro de alocação de memória\n");
+        exit(1); 
+    }
+    proc->id_processo = -1;
 
     return proc;
 }
@@ -1005,7 +1019,7 @@ int* paginas_na_memoria(F* fila, int* total_paginas) {
     int count = 0;
     F* temp = fila;
     while (temp != NULL) {
-        count += temp->processo.tabela_paginas->qtd_paginas;
+        count += temp->processo->tabela_paginas->qtd_paginas;
         temp = temp->prox;
     }
 
@@ -1025,10 +1039,10 @@ int* paginas_na_memoria(F* fila, int* total_paginas) {
     int index = 0;
     temp = fila;
     while (temp != NULL) {
-        P processo_atual = temp->processo;
-        for (int i = 0; i < processo_atual.tabela_paginas->qtd_paginas; i++) {
-            if (processo_atual.tabela_paginas->array_de_paginas[i].presente_mp) {
-                paginas[index] = processo_atual.id_processo;
+        P *processo_atual = temp->processo;
+        for (int i = 0; i < processo_atual->tabela_paginas->qtd_paginas; i++) {
+            if (processo_atual->tabela_paginas->array_de_paginas[i].presente_mp) {
+                paginas[index] = processo_atual->id_processo;
             }
             index++;
         }
@@ -1127,51 +1141,51 @@ void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
     // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
     F *aux_lista = lista_processos;
     while (aux_lista) {
-        if (aux_lista->processo.controle_es > 0) {
-            aux_lista->processo.controle_es--;
-            printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo.id_processo, aux_lista->processo.controle_es);
+        if (aux_lista->processo->controle_es > 0) {
+            aux_lista->processo->controle_es--;
+            printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo->id_processo, aux_lista->processo->controle_es);
 
             // Se o tempo de controle de E/S chegar a zero
-            if (aux_lista->processo.controle_es == 0) {
-                printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo.id_processo);
+            if (aux_lista->processo->controle_es == 0) {
+                printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo->id_processo);
 
                 // Verifica o estado do processo
-                if (aux_lista->processo.estado == BLOQUEADO) {
-                    aux_lista->processo.estado = PRONTO;
+                if (aux_lista->processo->estado == BLOQUEADO) {
+                    aux_lista->processo->estado = PRONTO;
                     
                     // Remove o processo dos discos
                     DMAS *aux_dmas = dmas;
                     while (aux_dmas) {
-                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo.id_processo) {
+                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
                             aux_dmas->disco->processo.id_processo = -1;
                         }
                         aux_dmas = aux_dmas->prox;
                     }
 
                     // Remove o processo da fila de bloqueados
-                    ram->bloqueados = retira_da_fila(ram->bloqueados, &aux_lista->processo);
+                    ram->bloqueados = retira_da_fila(ram->bloqueados, aux_lista->processo);
 
                     // Insere o processo na fila de prontos em RQ0
-                    aux_lista->processo.indice_fila = 0;
-                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, &aux_lista->processo);
-                } else if (aux_lista->processo.estado == BLOQUEADO_SUSPENSO) {
-                    aux_lista->processo.estado = PRONTO_SUSPENSO;
+                    aux_lista->processo->indice_fila = 0;
+                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
+                } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
+                    aux_lista->processo->estado = PRONTO_SUSPENSO;
 
                     // Remove o processo dos discos
                     DMAS *aux_dmas = dmas;
                     while (aux_dmas) {
-                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo.id_processo) {
+                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
                             aux_dmas->disco->processo.id_processo = -1;
                         }
                         aux_dmas = aux_dmas->prox;
                     }
 
                     // Remove o processo da fila de bloqueados suspensos
-                    disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, &aux_lista->processo);
+                    disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
 
                     // Insere o processo no final da fila de prontos suspensos
-                    aux_lista->processo.indice_fila = -1;
-                    disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, &aux_lista->processo);
+                    aux_lista->processo->indice_fila = -1;
+                    disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
                 }
             }
         }
