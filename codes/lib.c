@@ -555,10 +555,6 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
         F *aux = disco_rigido->processos;
 
         while (aux) {
-            if (!aux->processo) {
-                aux = aux->prox;
-                continue;
-            }
             P *processo = aux->processo;
             printf("\n\nTEMPO %d ------------------------------------------------------\n\n", *tmp);
             // Verifica o estado atual do processo e decide a ação apropriada
@@ -589,14 +585,16 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                     break;
 
                 case PRONTO:
-                    CPU *cpu1 = cpus->cpu;
-                    CPU *cpu2 = cpus->prox->cpu;
-                    CPU *cpu3 = cpus->prox->prox->cpu;
-                    CPU *cpu4 = cpus->prox->prox->prox->cpu;
+                    if(processo->chegada == *tmp || processo->controle_fase1 == 0 ){
+                        CPU *cpu1 = cpus->cpu;
+                        CPU *cpu2 = cpus->prox->cpu;
+                        CPU *cpu3 = cpus->prox->prox->cpu;
+                        CPU *cpu4 = cpus->prox->prox->prox->cpu;
 
-                    CPU *cpu_disp = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
-                    if (cpu_disp->indice != -1) {
-                        insere_CPU(disco_rigido, ram, processo, cpu_disp, cpus);
+                        CPU *cpu_disp = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
+                        if (cpu_disp->indice != -1) {
+                            insere_CPU(disco_rigido, ram, processo, cpu_disp, cpus);
+                        }
                     }
                     break;
 
@@ -653,31 +651,32 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                         processo->controle_fase2--;
                     } else {
 
+                        ram->paginas_disponiveis += processo->tabela_paginas->qtd_paginas;
                         processo->estado = SAIDA;
                         ram->processos = retira_da_fila(ram->processos, processo);
                         processo->indice_fila = -1;
                         // ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
                         disco_rigido->processos = retira_da_fila(disco_rigido->processos, processo);
+                        aux = disco_rigido->processos;
                         retira_processo_da_CPU(processo,cpu_alocada);
                     }
                     break;
 
-                // case SAIDA:
-                //     // Se o processo está terminado, libera seus recursos
-                //     ram->processos = retira_da_fila(ram->processos, processo);
-                //     ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
-                //     // disco_rigido->processos = retira_da_fila(disco_rigido->processos, processo);
-                //     break;
+                case SAIDA:
+                    // // Se o processo está terminado, libera seus recursos
+                    // ram->processos = retira_da_fila(ram->processos, processo);
+                    // ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
+                    // // disco_rigido->processos = retira_da_fila(disco_rigido->processos, processo);
+                    break;
 
                 default:
                     printf("Estado desconhecido do processo!\n");
                     break;
             }
-
-            aux = aux->prox;
             visualiza_ARM(disco_rigido);
-            // visualiza_MP(*ram);
             if(!disco_rigido->processos) break;;
+            aux = aux->prox;
+            // visualiza_MP(*ram);
         }
         visualiza_CPU(cpus);
 

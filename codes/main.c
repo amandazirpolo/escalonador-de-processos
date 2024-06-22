@@ -32,20 +32,30 @@ int main(){
 
     apresentacao();
     visualiza_DMA(dmas);
+    usleep(1000000);
 
     printf("Preenchendo a Memória Principal... \n\n");
 
-    usleep(2000000);
     visualiza_MP(&ram);
     visualiza_ARM(&disco_rigido);
     visualiza_CPU(cpus);
     
     printf("\n\n     Memória Principal preenchida com sucesso! \n\n");
     visualiza_ARM(&disco_rigido);
+    usleep(2500000);
 
     execucao(&disco_rigido, &ram, cpus, &tempo);
     int total_paginas;
     int* resultado = paginas_na_memoria(ram.processos, &total_paginas);
+
+
+    printf("\n\n------------------------------------------------------------------------------\n\n");
+    printf("\n\n                TODOS OS PROCESSOS FORMA EXECUTADOS COM SUCESSO!                 \n");
+    printf("\n\n------------------------------------------------------------------------------\n\n");
+
+    visualiza_MP(&ram);
+    visualiza_ARM(&disco_rigido);
+    visualiza_CPU(cpus);
 
     libera_fila(ram.processos);
     libera_fila(ram.prontosRQ0);
