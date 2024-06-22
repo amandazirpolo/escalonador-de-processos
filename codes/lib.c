@@ -1,14 +1,48 @@
 #include "lib.h"
 /* funções vão nesse arquivo */
 
-int tem_memoria(int total_ram, int tamanho_processo){
-    return total_ram - tamanho_processo;
-}
+// int tem_memoria(int total_ram, int tamanho_processo){
+//     return total_ram - tamanho_processo;
+// }
 
+
+/*
+Calcula quantidade de páginas por processo
+---------------------------------
+
+Observações:
+
+
+### Parâmetros:
+
+- int tamanho_processo
+- int tamanho_pagina
+
+### Retorno:
+
+- Média de páginas do processo
+    
+*/
 int calcula_paginas_processo(int tamanho_processo, int tamanho_pagina) {
     return (tamanho_processo + tamanho_pagina - 1) / tamanho_pagina;
 }
 
+
+/*
+Cria uma nova tabela de páginas
+---------------------------------
+
+Observações:
+
+
+### Parâmetros:
+
+- int qtd_paginas: Quantidade de páginas desejadas na tabela.
+
+### Retorno:
+
+Tabela de páginas devidamente incializada
+*/
 T_TABELA_PAGINAS* new_tabela_paginas(int qtd_paginas) {
     T_TABELA_PAGINAS *tabela = (T_TABELA_PAGINAS *) malloc(sizeof(T_TABELA_PAGINAS));
     if (!tabela) {
@@ -36,7 +70,24 @@ T_TABELA_PAGINAS* cria_paginas_processo(P* processo, int tamanho_pagina){
     return tabela;
 }
 
+
+/*
+Testa se há espaço na memória
+---------------------------------
+
+Observações: Se há página disponível ainda há espaço livre na memória.
+
+
+### Parâmetros:
+
+* tamanho_processo: 
+
+### Retorno:
+
+    
+*/
 int tem_pagina_disponivel(int tamanho_processo, int total_ram, int disponivel_ram, int tamanho_pagina, int paginas_disponiveis){
+    
     return paginas_disponiveis > calcula_paginas_processo(tamanho_processo, tamanho_pagina);
 }
 
@@ -116,9 +167,26 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP *ram) {
 }
 
 
-
-
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
+
+
+/*
+Insere Processo na Mem. Principal
+---------------------------------
+
+Observações:
+
+
+### Parâmetros:
+
+- ARM disco_rigido: Disco Rigido.
+- MP * ram: Ponteiro de Memória Ram ( Secundária ).
+- P * processo: Ponteiro de Processo a ser inserido.
+
+### Retorno:
+
+    
+*/
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
     if(tem_pagina_disponivel(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
@@ -359,6 +427,23 @@ void gerencia_filas_feedback(ARM *disco_rigido, MP *ram) {
     swapperMS(disco_rigido, ram);
 }
 
+
+/*
+Verifica em qual fila o processo deve ser inserido.
+---------------------------------------------------
+
+Observações:
+
+### Parâmetros
+
+- P *processo: Ponteiro para Processo a ser verificado o índice atual.
+
+### Retorno
+
+- 0 caso não esteja alocado a nenhuma fila e precise ser mudado para RQ0.
+- 1 caso esteja alocado na fila RQ0 e precise ser mudado pra RQ1
+- 2 caso esteja alocado na fila RQ1 e precise ser mudado pra RQ2
+*/
 int verifica_fila(P *processo){
     if (processo->indice_fila == -1) return 0;
     if (processo->indice_fila == 0) return 1;
@@ -526,8 +611,8 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                         processo->estado = SAIDA;
                         ram->processos = retira_da_fila(ram->processos, processo);
                         processo->indice_fila = -1;
-                        ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
-                        // disco_rigido->processos = retira_da_fila(disco_rigido->processos, processo);
+                        // ram->bloqueados = insere_na_fila(ram->bloqueados, processo);
+                        disco_rigido->processos = retira_da_fila(disco_rigido->processos, processo);
                     }
                     break;
 

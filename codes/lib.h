@@ -12,12 +12,31 @@
 #define BLOQUEADO_SUSPENSO 5
 #define SAIDA 6
 
+/*
+Struct Tipo Página
+------------------
+
+### Atributos
+
+- int endereco_inicial
+- int presente_mp
+- int modificado
+*/
 typedef struct pagina {
     int endereco_inicial;
     int presente_mp;
     int modificado;
 } T_PAGINA;
 
+/*
+Struct Tipo Tabela de Páginas
+------------------
+
+### Atributos
+
+- T_PAGINA* array_de_paginas
+- int qtd_paginas
+*/
 typedef struct tabela_paginas {
     T_PAGINA* array_de_paginas; // array de paginas
     int qtd_paginas;
@@ -26,6 +45,32 @@ typedef struct tabela_paginas {
 
 /* estruturas vão nesse arquivo */
 
+
+/*
+Struct Tipo Processos
+------------------
+
+### Atributos
+#### Básicos
+
+- int id_processo
+- int tam
+- int estado 
+- int indice_fila
+- T_TABELA_PAGINAS* tabela_paginas
+
+#### Controle de Tempo
+
+- int chegada
+- int duracao_fase1
+- int controle_fase1
+- int duracao_es
+- int controle_es
+- int duracao_fase2
+- int controle_fase2
+- int tempoEmFila
+- int numero_discos
+*/
 typedef struct processo {
     // basico
     int id_processo;
@@ -47,6 +92,18 @@ typedef struct processo {
     int numero_discos;
 } P;
 
+/* estruturas vão nesse arquivo */
+
+
+/*
+Struct Tipo CPU
+------------------
+
+### Atributos
+
+- P processo;
+- int indice;
+*/
 typedef struct cpu {
     P processo;
     int indice;
