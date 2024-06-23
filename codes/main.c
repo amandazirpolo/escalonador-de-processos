@@ -50,11 +50,10 @@ int main(){
 
 
     printf("\n\n------------------------------------------------------------------------------\n\n");
-    printf("\n\n                TODOS OS PROCESSOS FORMA EXECUTADOS COM SUCESSO!                 \n");
+    printf("\n\n                TODOS OS PROCESSOS FORAM EXECUTADOS COM SUCESSO!                 \n");
     printf("\n\n------------------------------------------------------------------------------\n\n");
 
     visualiza_MP(&ram);
-    // visualiza_ARM(&disco_rigido);
     visualiza_CPU(cpus);
     int* resultado = paginas_na_memoria(ram.processos, ram.numero_paginas, ram.tamanho_pagina);
 	plot_memory(resultado, ram.numero_paginas);
