@@ -585,7 +585,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                     break;
 
                 case PRONTO:
-                    if(processo->chegada == *tmp || processo->controle_fase1 == 0 ){
+                    if(processo->chegada == *tmp || processo->controle_fase1 >= 0 ){
                         CPU *cpu1 = cpus->cpu;
                         CPU *cpu2 = cpus->prox->cpu;
                         CPU *cpu3 = cpus->prox->prox->cpu;
@@ -678,13 +678,14 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
             aux = aux->prox;
             // visualiza_MP(*ram);
         }
+        printf("\n\nTEMPO %d ------------------------------------------------------\n\n", *tmp);
         visualiza_CPU(cpus);
 
         (*tmp)++;
         usleep(1000000);
 
         // Atualiza as filas de feedback
-        // gerencia_filas_feedback(ram);
+        // gerencia_filas_feedback(disco_rigido, ram);
     }
 }
 
@@ -1166,31 +1167,31 @@ void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
 
                     // Insere o processo na fila de prontos em RQ0
                     aux_lista->processo->indice_fila = 0;
-                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
-                } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
-                    aux_lista->processo->estado = PRONTO_SUSPENSO;
+//                     ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
+//                 } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
+//                     aux_lista->processo->estado = PRONTO_SUSPENSO;
 
-                    // Remove o processo dos discos
-                    DMAS *aux_dmas = dmas;
-                    while (aux_dmas) {
-                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
-                            aux_dmas->disco->processo.id_processo = -1;
-                        }
-                        aux_dmas = aux_dmas->prox;
-                    }
+//                     // Remove o processo dos discos
+//                     DMAS *aux_dmas = dmas;
+//                     while (aux_dmas) {
+//                         if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
+//                             aux_dmas->disco->processo.id_processo = -1;
+//                         }
+//                         aux_dmas = aux_dmas->prox;
+//                     }
 
-                    // Remove o processo da fila de bloqueados suspensos
-                    disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
+//                     // Remove o processo da fila de bloqueados suspensos
+//                     disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
 
-                    // Insere o processo no final da fila de prontos suspensos
-                    aux_lista->processo->indice_fila = -1;
-                    disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
-                }
-            }
-        }
-        aux_lista = aux_lista->prox;
-    }
+//                     // Insere o processo no final da fila de prontos suspensos
+//                     aux_lista->processo->indice_fila = -1;
+//                     disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
+//                 }
+//             }
+//         }
+//         aux_lista = aux_lista->prox;
+//     }
     
-    // Libera a lista de processos
-    libera_fila(lista_processos);
-}
+//     // Libera a lista de processos
+//     libera_fila(lista_processos);
+// }

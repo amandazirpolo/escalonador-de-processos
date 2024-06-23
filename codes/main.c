@@ -54,7 +54,7 @@ int main(){
     printf("\n\n------------------------------------------------------------------------------\n\n");
 
     visualiza_MP(&ram);
-    visualiza_ARM(&disco_rigido);
+    // visualiza_ARM(&disco_rigido);
     visualiza_CPU(cpus);
 
     libera_fila(ram.processos);
