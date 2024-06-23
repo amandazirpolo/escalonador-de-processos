@@ -6,8 +6,8 @@ int main(){
     DMA disco1, disco2, disco3, disco4;
     ARM disco_rigido;
     int tempo = 0;
-    int n_discos = 4;
-    
+    //int n_discos = 4;
+
     CPUS *cpus = NULL;
     DMAS *dmas = NULL;
 
@@ -45,8 +45,8 @@ int main(){
     usleep(2500000);
 
     execucao(&disco_rigido, &ram, cpus, &tempo);
-    int total_paginas;
-    int* resultado = paginas_na_memoria(ram.processos, &total_paginas);
+    //int total_paginas;
+    //int* resultado = paginas_na_memoria(ram.processos, &total_paginas);
 
 
     printf("\n\n------------------------------------------------------------------------------\n\n");

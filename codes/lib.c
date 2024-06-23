@@ -89,7 +89,7 @@ Observações: Se há página disponível ainda há espaço livre na memória.
 
     
 */
-int tem_pagina_disponivel(int tamanho_processo, int total_ram, int disponivel_ram, int tamanho_pagina, int paginas_disponiveis){
+int tem_pagina_disponivel(int tamanho_processo, int tamanho_pagina, int paginas_disponiveis){
     
     return paginas_disponiveis > calcula_paginas_processo(tamanho_processo, tamanho_pagina);
 }
@@ -176,9 +176,7 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP *ram) {
 
         P *tmp = busca_processo_ARM(disco_rigido, aux);
         
-        if (tmp->id_processo == -1) {
-            F *novo_processo = cria_processo(id, aux->chegada, aux->duracao_fase1, aux->duracao_es, aux->duracao_fase2, aux->tam, aux->numero_discos, disco_rigido, ram);
-            
+        if (tmp->id_processo == -1) {            
             if (ram->paginas_disponiveis < calcula_paginas_processo(aux->tam, ram->tamanho_pagina)) {
                 swapperMS(disco_rigido, ram);  // Chama o swapperMS para liberar memória
             }
@@ -211,7 +209,7 @@ Observações:
 */
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if(tem_pagina_disponivel(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
+    if(tem_pagina_disponivel(processo->tam, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
@@ -261,13 +259,10 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo){
 void swapperMP(ARM *disco_rigido, MP *ram) {
     // Primeiro, pega um processo na memória principal para ser suspenso
     F *aux_ram = ram->processos;
-    P *aux_processo;
+    P *aux_processo = aux_ram->processo;
 
     if (aux_ram) {
-        ram->processos = retira_da_fila(ram->processos, aux_processo);
-
         if (aux_processo->estado == PRONTO){
-            aux_processo = aux_ram->processo;
             ram->processos = retira_da_fila(ram->prontosRQ0, aux_processo);
             
             // Depois, atualiza o contexto do processo suspenso
@@ -283,7 +278,6 @@ void swapperMP(ARM *disco_rigido, MP *ram) {
             if (aux_processo_disco) aux_processo_disco->processo->estado = PRONTO_SUSPENSO;
         }
         else {
-            aux_processo = aux_ram->processo;
             ram->processos = retira_da_fila(ram->bloqueados, aux_processo);
             
             // Depois, atualiza o contexto do processo suspenso
@@ -546,8 +540,7 @@ int fase_do_processo(P *processo){
         && (processo->controle_fase2 > 0)) return 1;
     if((processo->controle_fase1 == 0) && (processo->controle_es > 0)
         && (processo->controle_fase2 > 0)) return 2;
-    if((processo->controle_fase1 == 0) && (processo->controle_es == 0) 
-        && (processo->controle_fase2 > 0)) return 3;
+    else return 3;
 }
 
 void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
@@ -593,7 +586,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
 
                         CPU *cpu_disp = cpu_disponivel(cpu1, cpu2, cpu3, cpu4);
                         if (cpu_disp->indice != -1) {
-                            insere_CPU(disco_rigido, ram, processo, cpu_disp, cpus);
+                            insere_CPU(processo, cpu_disp, cpus);
                         }
                     }
                     break;
@@ -709,7 +702,7 @@ CPU *processo_alocado(CPUS *cpus, P *processo) {
     return NULL;
 }
 
-void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu, CPUS* cpus) {
+void insere_CPU(P *processo, CPU *indice_cpu, CPUS* cpus) {
     if (processo && indice_cpu && !processo_alocado(cpus, processo)) {
         processo->estado = EXECUTANDO;
         indice_cpu->processo = processo;
@@ -1167,31 +1160,31 @@ void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
 
                     // Insere o processo na fila de prontos em RQ0
                     aux_lista->processo->indice_fila = 0;
-//                     ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
-//                 } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
-//                     aux_lista->processo->estado = PRONTO_SUSPENSO;
+                    ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
+                } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
+                    aux_lista->processo->estado = PRONTO_SUSPENSO;
 
-//                     // Remove o processo dos discos
-//                     DMAS *aux_dmas = dmas;
-//                     while (aux_dmas) {
-//                         if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
-//                             aux_dmas->disco->processo.id_processo = -1;
-//                         }
-//                         aux_dmas = aux_dmas->prox;
-//                     }
+                    // Remove o processo dos discos
+                    DMAS *aux_dmas = dmas;
+                    while (aux_dmas) {
+                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
+                            aux_dmas->disco->processo.id_processo = -1;
+                        }
+                        aux_dmas = aux_dmas->prox;
+                    }
 
-//                     // Remove o processo da fila de bloqueados suspensos
-//                     disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
+                    // Remove o processo da fila de bloqueados suspensos
+                    disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
 
-//                     // Insere o processo no final da fila de prontos suspensos
-//                     aux_lista->processo->indice_fila = -1;
-//                     disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
-//                 }
-//             }
-//         }
-//         aux_lista = aux_lista->prox;
-//     }
+                    // Insere o processo no final da fila de prontos suspensos
+                    aux_lista->processo->indice_fila = -1;
+                    disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
+                }
+            }
+        }
+        aux_lista = aux_lista->prox;
+    }
     
-//     // Libera a lista de processos
-//     libera_fila(lista_processos);
-// }
+    // Libera a lista de processos
+    libera_fila(lista_processos);
+}

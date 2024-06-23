@@ -186,7 +186,7 @@ void gerencia_filas_feedback(ARM *disco_rigido, MP *ram);
 void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp);
 CPU *processo_alocado(CPUS *cpus, P *processo);
 void retira_processo_da_CPU(P *processo, CPU *indice_cpu);
-void insere_CPU(ARM *disco_rigido, MP *ram, P *processo, CPU *indice_cpu, CPUS *cpus);
+void insere_CPU(P *processo, CPU *indice_cpu, CPUS *cpus);
 F *retira_da_fila(F *fila, P *processo);
 int insere_processo_DMA(DMAS *dmas, P *processo);
 void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido);
