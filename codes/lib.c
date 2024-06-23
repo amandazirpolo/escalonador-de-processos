@@ -36,7 +36,7 @@ T_TABELA_PAGINAS* cria_paginas_processo(P* processo, int tamanho_pagina){
     return tabela;
 }
 
-int tem_pagina_disponivel(int tamanho_processo, int total_ram, int disponivel_ram, int tamanho_pagina, int paginas_disponiveis){
+int tem_pagina_disponivel(int tamanho_processo, int tamanho_pagina, int paginas_disponiveis){
     return paginas_disponiveis > calcula_paginas_processo(tamanho_processo, tamanho_pagina);
 }
 
@@ -190,7 +190,7 @@ int first_fit(T_TABELA_PAGINAS* tabela_paginas , MP* ram) {
 //void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
     // se essa condição for maior que zero, entao tem espaço disponivel na memoria
-    if(tem_pagina_disponivel(processo->tam, ram->tam_total, ram->controle_memoria, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
+    if(tem_pagina_disponivel(processo->tam, ram->tamanho_pagina, ram->paginas_disponiveis)){ // se tem paginas tem memoria
         // atualiza o contexto do processo
         processo->estado = PRONTO;
         // atualiza o contexto da mp
@@ -522,7 +522,7 @@ void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
         case 3:
             processo.duracao_fase2--;
         default:
-            ("ERRO \n");
+            printf("ERRO \n");
             break;
         }
         // atualiza o contexto da mp
@@ -573,7 +573,7 @@ void insere_CPU(ARM disco_rigido, MP *ram, P processo, CPU *indice_cpu){
         case 3:
             processo.duracao_fase2--;
         default:
-            ("ERRO \n");
+            printf("ERRO \n");
             break;
         }
     }

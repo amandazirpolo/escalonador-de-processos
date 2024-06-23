@@ -5,8 +5,8 @@ int main(){
     MP ram;
     DMA disco1, disco2, disco3, disco4;
     ARM disco_rigido;
-    int tempo = 0;
-    int n_discos = 4;
+    // int tempo = 0;
+    // int n_discos = 4;
     
     CPUS *cpus = NULL;
     DMAS *dmas = NULL;
