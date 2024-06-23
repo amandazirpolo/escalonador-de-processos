@@ -18,6 +18,7 @@
 *.pch
 
 # Libraries
+!images/
 *.lib
 *.a
 *.la
