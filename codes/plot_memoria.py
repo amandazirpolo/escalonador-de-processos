@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.patches as patches
+import matplotlib.patches as patches 
 
 
 def plot_memory(pages, length):

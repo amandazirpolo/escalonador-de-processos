@@ -5,14 +5,11 @@
 //     return total_ram - tamanho_processo;
 // }
 
-
 /*
 Calcula quantidade de páginas por processo
 ---------------------------------
 
 Observações:
-
-
 ### Parâmetros:
 
 - int tamanho_processo
@@ -86,11 +83,8 @@ Observações: Se há página disponível ainda há espaço livre na memória.
 * tamanho_processo: 
 
 ### Retorno:
-
-    
 */
 int tem_pagina_disponivel(int tamanho_processo, int tamanho_pagina, int paginas_disponiveis){
-    
     return paginas_disponiveis > calcula_paginas_processo(tamanho_processo, tamanho_pagina);
 }
 
@@ -186,10 +180,6 @@ void inicializa_processos(FILE *arquivo, ARM *disco_rigido, MP *ram) {
     free(aux);
 }
 
-
-//void insere_bloqueados(ARM disco_rigido, MP *ram, P processo){}
-
-
 /*
 Insere Processo na Mem. Principal
 ---------------------------------
@@ -204,7 +194,6 @@ Observações:
 - P * processo: Ponteiro de Processo a ser inserido.
 
 ### Retorno:
-
     
 */
 void insere_MP(ARM disco_rigido, MP *ram, P *processo){
@@ -460,6 +449,7 @@ Observações:
 - 1 caso esteja alocado na fila RQ0 e precise ser mudado pra RQ1
 - 2 caso esteja alocado na fila RQ1 e precise ser mudado pra RQ2
 */
+
 int verifica_fila(P *processo){
     if (processo->indice_fila == -1) return 0;
     if (processo->indice_fila == 0) return 1;
@@ -532,7 +522,6 @@ CPU *cpu_disponivel(CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4){
     
     return tmp;
 }
-
 
 int fase_do_processo(P *processo){
     // retorna 1 se for a fase 1, 2 se for a fase de e/s e 3 se for a fase 2
@@ -681,7 +670,6 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
         // gerencia_filas_feedback(disco_rigido, ram);
     }
 }
-
 
 F *busca_processo_fila(F *fila, P *processo){
     F *aux = fila;
@@ -841,7 +829,6 @@ void apresentacao(){
     printf("=======================================================\n\n\n");
 }
 
-
 void libera_fila(F *fila){
     F *aux = fila, *tmp;
 
@@ -892,7 +879,6 @@ void resumo_processo(F *tmp){
     }
     printf("-------------------------------------------------------\n\n");
 }
-
 
 void visualiza_MP(MP *ram) {
     F* aux = ram->processos;
