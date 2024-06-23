@@ -1,0 +1,11 @@
+olá meus amigos
+com a inclusão da integração com python, python agora é uma dependência
+no meu linux, o comando abaixo funciona:
+
+gcc main.c -o main -I/usr/include/python3.10 -lpython3.10
+
+caso não compile ou rode, instale o python e as bibliotecas que usamos:
+
+sudo apt-get install python3.dev 
+sudo apt install pip
+pip install -r requirements.txt
