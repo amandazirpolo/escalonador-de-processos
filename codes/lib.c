@@ -1125,48 +1125,48 @@ int insere_processo_DMA(DMAS *dmas, P *processo) {
 
 // Percorre o DMA e salva os processos que possuem 1 ou mais discos em uma lista
 // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
-void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
-    // Cria uma lista para armazenar os processos que possuem discos alocados
-    F *lista_processos = NULL;
+// void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
+//     // Cria uma lista para armazenar os processos que possuem discos alocados
+//     F *lista_processos = NULL;
 
-    // Percorre os DMAs e adiciona os processos à lista
-    DMAS *aux = dmas;
-    while (aux) {
-        if (aux->disco->processo.id_processo != -1) {
-            lista_processos = insere_na_fila(lista_processos, &aux->disco->processo);
-        }
-        aux = aux->prox;
-    }
+//     // Percorre os DMAs e adiciona os processos à lista
+//     DMAS *aux = dmas;
+//     while (aux) {
+//         if (aux->disco->processo.id_processo != -1) {
+//             lista_processos = insere_na_fila(lista_processos, &aux->disco->processo);
+//         }
+//         aux = aux->prox;
+//     }
 
-    // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
-    F *aux_lista = lista_processos;
-    while (aux_lista) {
-        if (aux_lista->processo->controle_es > 0) {
-            aux_lista->processo->controle_es--;
-            printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo->id_processo, aux_lista->processo->controle_es);
+//     // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
+//     F *aux_lista = lista_processos;
+//     while (aux_lista) {
+//         if (aux_lista->processo->controle_es > 0) {
+//             aux_lista->processo->controle_es--;
+//             printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo->id_processo, aux_lista->processo->controle_es);
 
-            // Se o tempo de controle de E/S chegar a zero
-            if (aux_lista->processo->controle_es == 0) {
-                printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo->id_processo);
+//             // Se o tempo de controle de E/S chegar a zero
+//             if (aux_lista->processo->controle_es == 0) {
+//                 printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo->id_processo);
 
-                // Verifica o estado do processo
-                if (aux_lista->processo->estado == BLOQUEADO) {
-                    aux_lista->processo->estado = PRONTO;
+//                 // Verifica o estado do processo
+//                 if (aux_lista->processo->estado == BLOQUEADO) {
+//                     aux_lista->processo->estado = PRONTO;
                     
-                    // Remove o processo dos discos
-                    DMAS *aux_dmas = dmas;
-                    while (aux_dmas) {
-                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
-                            aux_dmas->disco->processo.id_processo = -1;
-                        }
-                        aux_dmas = aux_dmas->prox;
-                    }
+//                     // Remove o processo dos discos
+//                     DMAS *aux_dmas = dmas;
+//                     while (aux_dmas) {
+//                         if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
+//                             aux_dmas->disco->processo.id_processo = -1;
+//                         }
+//                         aux_dmas = aux_dmas->prox;
+//                     }
 
-                    // Remove o processo da fila de bloqueados
-                    ram->bloqueados = retira_da_fila(ram->bloqueados, aux_lista->processo);
+//                     // Remove o processo da fila de bloqueados
+//                     ram->bloqueados = retira_da_fila(ram->bloqueados, aux_lista->processo);
 
-                    // Insere o processo na fila de prontos em RQ0
-                    aux_lista->processo->indice_fila = 0;
+//                     // Insere o processo na fila de prontos em RQ0
+//                     aux_lista->processo->indice_fila = 0;
 //                     ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
 //                 } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
 //                     aux_lista->processo->estado = PRONTO_SUSPENSO;
