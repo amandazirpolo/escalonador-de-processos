@@ -585,7 +585,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                     break;
 
                 case PRONTO:
-                    if(processo->chegada == *tmp || processo->controle_fase1 >= 0 ){
+                    if(processo->chegada == *tmp || (*tmp >= processo->chegada && processo->controle_fase2 != 0 ) ){
                         CPU *cpu1 = cpus->cpu;
                         CPU *cpu2 = cpus->prox->cpu;
                         CPU *cpu3 = cpus->prox->prox->cpu;
