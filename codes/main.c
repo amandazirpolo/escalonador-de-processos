@@ -50,12 +50,12 @@ int main(){
 
 
     printf("\n\n------------------------------------------------------------------------------\n\n");
-    printf("\n\n                TODOS OS PROCESSOS FORMA EXECUTADOS COM SUCESSO!                 \n");
+    printf("\n\n                TODOS OS PROCESSOS FORAM EXECUTADOS COM SUCESSO!                 \n");
     printf("\n\n------------------------------------------------------------------------------\n\n");
 
-    visualiza_MP(&ram);
+    //visualiza_MP(&ram);
     // visualiza_ARM(&disco_rigido);
-    visualiza_CPU(cpus);
+    //visualiza_CPU(cpus);
 
     libera_fila(ram.processos);
     libera_fila(ram.prontosRQ0);

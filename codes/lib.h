@@ -164,7 +164,7 @@ F *busca_processo_fila(F *fila, P *processo);
 
 // funções auxiliares
 int fase_do_processo(P *processo);
-int verifica_fila(P *processo);
+int atualiza_fila(P *processo);
 CPU *cpu_disponivel(CPU *cpu1, CPU *cpu2, CPU *cpu3, CPU *cpu4);
 
 // funções de verificação

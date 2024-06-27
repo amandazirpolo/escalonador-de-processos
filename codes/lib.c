@@ -223,7 +223,7 @@ void insere_MP(ARM disco_rigido, MP *ram, P *processo){
         ram->controle_memoria = ram->controle_memoria - processo->tam;
         ram->paginas_disponiveis = ram->paginas_disponiveis - processo->tabela_paginas->qtd_paginas;
         
-        int tmp = verifica_fila(processo);
+        int tmp = atualiza_fila(processo);
         processo->indice_fila = tmp;
         switch (tmp){
             case 0:
@@ -312,12 +312,12 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
         
         // Verifica se há memória disponível na RAM para o processo
         if (ram->controle_memoria >= aux_processo_pronto->tam && ram->paginas_disponiveis >= aux_processo_pronto->tabela_paginas->qtd_paginas) {
-            // Atualiza o contexto do processo
+            // Verifico o contexto do processo
             if (aux_processo_pronto->estado == PRONTO_SUSPENSO) {
+                aux_processo_pronto->estado = PRONTO;
                 // Retira o processo suspenso do disco rígido
                 disco_rigido->pronto_suspenso = retira_da_fila(disco_rigido->pronto_suspenso, aux_processo_pronto);
 
-                aux_processo_pronto->estado = PRONTO;
                 // Insere de volta na fila correspondente a sua fila do feedback de antes de ter sido suspenso
                 if (aux_processo_pronto->indice_fila == 0)
                     ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_processo_pronto);
@@ -371,79 +371,48 @@ void swapperMS(ARM *disco_rigido, MP *ram) {
 void gerencia_filas_feedback(ARM *disco_rigido, MP *ram) {
     // Processa a fila prontosRQ0
     F *aux = ram->prontosRQ0;
-    F *prev = NULL;
+    P *processo;
     while (aux) {
-        P *processo = aux->processo;
-
+        processo = aux->processo;
         // Se o processo tiver excedido seu quantum na fila RQ0, movê-lo para RQ1
         if (processo->tempoEmFila >= QUANTUM) {
             processo->tempoEmFila = 0;
-            processo->indice_fila = verifica_fila(processo);
+            processo->indice_fila = atualiza_fila(processo);
+            ram->prontosRQ0 = retira_da_fila(ram->prontosRQ0, processo);
             ram->prontosRQ1 = insere_na_fila(ram->prontosRQ1, processo);
-            if (prev)
-                prev->prox = aux->prox;
-            else 
-                ram->prontosRQ0 = aux->prox;
-            F *tmp = aux;
-            aux = aux->prox;
-            free(tmp);
-        } else {
-            prev = aux;
-            aux = aux->prox;
         }
+        aux = aux->prox;
     }
 
     // Processa a fila prontosRQ1
     aux = ram->prontosRQ1;
-    prev = NULL;
     while (aux) {
-        P *processo = aux->processo;
+        processo = aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ1, movê-lo para RQ2
         if (processo->tempoEmFila >= QUANTUM) {
             processo->tempoEmFila = 0;
-            processo->indice_fila = verifica_fila(processo);
+            processo->indice_fila = atualiza_fila(processo);
+            ram->prontosRQ1 = retira_da_fila(ram->prontosRQ1, processo);
             ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, processo);
-            if (prev) 
-                prev->prox = aux->prox;
-            else 
-                ram->prontosRQ1 = aux->prox;
-            F *tmp = aux;
-            aux = aux->prox;
-            free(tmp);
-        } else {
-            prev = aux;
-            aux = aux->prox;
         }
+        aux = aux->prox;
     }
 
     // Processa a fila prontosRQ2
     aux = ram->prontosRQ2;
-    prev = NULL;
     while (aux) {
-        P *processo = aux->processo;
+        processo = aux->processo;
 
         // Se o processo tiver excedido seu quantum na fila RQ2, mantê-lo na mesma fila porem joga ele pro final da fila
         if (processo->tempoEmFila >= QUANTUM) {
             processo->tempoEmFila = 0;
             // Retirar o processo da posição atual
-            if (prev)
-                prev->prox = aux->prox;
-            else 
-                ram->prontosRQ2 = aux->prox;
-            
+            ram->prontosRQ2 = retira_da_fila(ram->prontosRQ2, processo);
             // Inserir o processo no final da fila
-            aux->prox = NULL;
-            ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, processo);
-
-            // Atualizar ponteiro auxiliar
-            F *tmp = aux;
-            aux = aux->prox;
-            free(tmp);        
-        } else {
-            prev = aux;
-            aux = aux->prox;
+            ram->prontosRQ2 = insere_na_fila(ram->prontosRQ2, processo);   
         }
+        aux = aux->prox;
     }
     // Após mover processos entre as filas, chama o swapperMS para gerenciar a memória
     swapperMS(disco_rigido, ram);
@@ -466,7 +435,7 @@ Observações:
 - 1 caso esteja alocado na fila RQ0 e precise ser mudado pra RQ1
 - 2 caso esteja alocado na fila RQ1 e precise ser mudado pra RQ2
 */
-int verifica_fila(P *processo){
+int atualiza_fila(P *processo){
     if (processo->indice_fila == -1) return 0;
     if (processo->indice_fila == 0) return 1;
     return 2;
@@ -585,7 +554,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
                     break;
 
                 case PRONTO:
-                    if(processo->chegada == *tmp || (*tmp >= processo->chegada && processo->controle_fase2 != 0 ) ){
+                    if(processo->chegada == *tmp || processo->controle_fase1 >= 0 ){
                         CPU *cpu1 = cpus->cpu;
                         CPU *cpu2 = cpus->prox->cpu;
                         CPU *cpu3 = cpus->prox->prox->cpu;
@@ -676,7 +645,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
             visualiza_ARM(disco_rigido);
             if(!disco_rigido->processos) break;;
             aux = aux->prox;
-            // visualiza_MP(*ram);
+            visualiza_MP(ram);
         }
         printf("\n\nTEMPO %d ------------------------------------------------------\n\n", *tmp);
         visualiza_CPU(cpus);
@@ -685,7 +654,7 @@ void execucao(ARM *disco_rigido, MP *ram, CPUS *cpus, int *tmp){
         usleep(1000000);
 
         // Atualiza as filas de feedback
-        // gerencia_filas_feedback(disco_rigido, ram);
+        gerencia_filas_feedback(disco_rigido, ram);
     }
 }
 
@@ -982,8 +951,8 @@ void visualiza_MP(MP *ram) {
     printf("-------------------------------------------------------\n\n");
 
     // Informações sobre páginas
-    printf("Numero total de paginas:        %d\n", ram->numero_paginas);
-    printf("Numero de paginas disponiveis:  %d\n\n", ram->paginas_disponiveis);
+    //printf("Numero total de paginas:        %d\n", ram->numero_paginas);
+    //printf("Numero de paginas disponiveis:  %d\n\n", ram->paginas_disponiveis);
     printf("-------------------------------------------------------\n");
 }
 
@@ -1125,73 +1094,73 @@ int insere_processo_DMA(DMAS *dmas, P *processo) {
 
 // Percorre o DMA e salva os processos que possuem 1 ou mais discos em uma lista
 // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
-// void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
-//     // Cria uma lista para armazenar os processos que possuem discos alocados
-//     F *lista_processos = NULL;
+void executa_DMA(DMAS *dmas, MP *ram, ARM *disco_rigido) {
+    // Cria uma lista para armazenar os processos que possuem discos alocados
+    F *lista_processos = NULL;
 
-//     // Percorre os DMAs e adiciona os processos à lista
-//     DMAS *aux = dmas;
-//     while (aux) {
-//         if (aux->disco->processo.id_processo != -1) {
-//             lista_processos = insere_na_fila(lista_processos, &aux->disco->processo);
-//         }
-//         aux = aux->prox;
-//     }
+    // Percorre os DMAs e adiciona os processos à lista
+    DMAS *aux = dmas;
+    while (aux) {
+        if (aux->disco->processo.id_processo != -1) {
+            lista_processos = insere_na_fila(lista_processos, &aux->disco->processo);
+        }
+        aux = aux->prox;
+    }
 
-//     // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
-//     F *aux_lista = lista_processos;
-//     while (aux_lista) {
-//         if (aux_lista->processo->controle_es > 0) {
-//             aux_lista->processo->controle_es--;
-//             printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo->id_processo, aux_lista->processo->controle_es);
+    // Para cada processo na lista, diminui em 1 o tempo necessário na fase de entrada e saída
+    F *aux_lista = lista_processos;
+    while (aux_lista) {
+        if (aux_lista->processo->controle_es > 0) {
+            aux_lista->processo->controle_es--;
+            printf("Processo %d: tempo de E/S decrementado para %d.\n", aux_lista->processo->id_processo, aux_lista->processo->controle_es);
 
-//             // Se o tempo de controle de E/S chegar a zero
-//             if (aux_lista->processo->controle_es == 0) {
-//                 printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo->id_processo);
+            // Se o tempo de controle de E/S chegar a zero
+            if (aux_lista->processo->controle_es == 0) {
+                printf("A requisição de E/S do Processo %d ficou pronta.\n", aux_lista->processo->id_processo);
 
-//                 // Verifica o estado do processo
-//                 if (aux_lista->processo->estado == BLOQUEADO) {
-//                     aux_lista->processo->estado = PRONTO;
+                // Verifica o estado do processo
+                if (aux_lista->processo->estado == BLOQUEADO) {
+                    aux_lista->processo->estado = PRONTO;
                     
+                    // Remove o processo dos discos
+                    DMAS *aux_dmas = dmas;
+                    while (aux_dmas) {
+                        if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
+                            aux_dmas->disco->processo.id_processo = -1;
+                        }
+                        aux_dmas = aux_dmas->prox;
+                    }
+
+                    // Remove o processo da fila de bloqueados
+                    ram->bloqueados = retira_da_fila(ram->bloqueados, aux_lista->processo);
+
+                    // Insere o processo na fila de prontos em RQ0
+                    aux_lista->processo->indice_fila = 0;
+                     ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
+                 } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
+                     aux_lista->processo->estado = PRONTO_SUSPENSO;
+
 //                     // Remove o processo dos discos
-//                     DMAS *aux_dmas = dmas;
-//                     while (aux_dmas) {
-//                         if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
-//                             aux_dmas->disco->processo.id_processo = -1;
-//                         }
-//                         aux_dmas = aux_dmas->prox;
-//                     }
+                     DMAS *aux_dmas = dmas;
+                     while (aux_dmas) {
+                         if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
+                             aux_dmas->disco->processo.id_processo = -1;
+                         }
+                         aux_dmas = aux_dmas->prox;
+                     }
 
-//                     // Remove o processo da fila de bloqueados
-//                     ram->bloqueados = retira_da_fila(ram->bloqueados, aux_lista->processo);
+                     // Remove o processo da fila de bloqueados suspensos
+                     disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
 
-//                     // Insere o processo na fila de prontos em RQ0
-//                     aux_lista->processo->indice_fila = 0;
-//                     ram->prontosRQ0 = insere_na_fila(ram->prontosRQ0, aux_lista->processo);
-//                 } else if (aux_lista->processo->estado == BLOQUEADO_SUSPENSO) {
-//                     aux_lista->processo->estado = PRONTO_SUSPENSO;
-
-//                     // Remove o processo dos discos
-//                     DMAS *aux_dmas = dmas;
-//                     while (aux_dmas) {
-//                         if (aux_dmas->disco->processo.id_processo == aux_lista->processo->id_processo) {
-//                             aux_dmas->disco->processo.id_processo = -1;
-//                         }
-//                         aux_dmas = aux_dmas->prox;
-//                     }
-
-//                     // Remove o processo da fila de bloqueados suspensos
-//                     disco_rigido->bloqueado_suspenso = retira_da_fila(disco_rigido->bloqueado_suspenso, aux_lista->processo);
-
-//                     // Insere o processo no final da fila de prontos suspensos
-//                     aux_lista->processo->indice_fila = -1;
-//                     disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
-//                 }
-//             }
-//         }
-//         aux_lista = aux_lista->prox;
-//     }
+                     // Insere o processo no final da fila de prontos suspensos
+                     aux_lista->processo->indice_fila = -1;
+                     disco_rigido->pronto_suspenso = insere_na_fila(disco_rigido->pronto_suspenso, aux_lista->processo);
+                 }
+             }
+         }
+         aux_lista = aux_lista->prox;
+     }
     
-//     // Libera a lista de processos
-//     libera_fila(lista_processos);
-// }
+     // Libera a lista de processos
+     libera_fila(lista_processos);
+}
