@@ -38,7 +38,41 @@ Uma lista de processos e seus eventos descreve informações sobre os processos 
 <br>
 <b>(Momento Chegada), (duração de CPU fase 1), (duração de I/O), (duração de CPU fase 2), (#Mbytes), (#disco)</b>
 <hr>
-Alunos:
+<h3>Como executar o código?</h3>
+<h4>Linux (Ubuntu 23 ou 22.04 LTS):</h4>
+<ol>
+  <li> Clonar o repositório "<a href=https://github.com/amandazirpolo/escalonador-de-processos.git><i>https://github.com/amandazirpolo/escalonador-de-processos.git</i></a>" 
+  <li> Abrir a pasta <i><b>codes</b></i> no repositório 
+  <li> Caso não tenha o Python instalado, instale as bibliotecas que estamos usando:
+  <ol type ="I" >
+    <li> <i><b>sudo apt install pip</b></i> 
+    <li> <i><b>.sudo apt-get install python3.dev</b></i> 
+    <li> <i><b>pip install -r requirements.txt</b></i> 
+  </ol>
+  <li> <i><b>find /usr/include -name Python.h</b></i> para achar o diretório Python.h no seu computador
+  <li> <i><b>gcc -I/usr/include/python3.x -o main main.c -lpython.3x</b></i> para compilar (X é a versão do Python no seu computador)
+  <li> <i><b>./main</b></i> para rodar o código
+</ol>
+<h4>Windows (10 ou 11):</h4>
+OBS: é necessário ter instalado o Python para todos os usuários do sistema por meio do <a href=https://www.python.org/downloads>site oficial</a>.
+<ol>
+  <li> Clonar o repositório "<a href=https://github.com/amandazirpolo/escalonador-de-processos.git><i>https://github.com/amandazirpolo/escalonador-de-processos.git</i></a>" 
+  <li> Abrir a pasta <i><b>codes</b></i> no repositório 
+  <li> <i><b>cl /I C:\Python3X\include main.c /link /LIBPATH:C:\Python3X\libs python3X.lib</b></i> para compilar (X é a versão do Python no seu computador)
+  <li> <i><b>main.exe</b></i> para rodar o código
+
+</ol>
+<hr>
+<h3>Ferramentas utilizadas no desenvolvimento:</h3>
+<ul>
+  <li> Ambiente de desenvolvimento <a href=https://code.visualstudio.com/download>Visual Studio Code</a>
+  <li> Linguagens de programação <a href=>C (principal)</a> e <a href=https://www.python.org/downloads>Python</a> 
+  <li> Sistemas Operacionais <a href=https://ubuntu.com/download/desktop&ved=2ahUKEwjF2JS-nfKGAxX_rZUCHYlxD6sQFnoECC0QAQ&usg=AOvVaw203XVs0Rm1boHgEG-slgAt>Linux</a> (principal) e <a href=https://www.microsoft.com/software-download/windows11>Windows</a>
+  <li> Sistema de versionamento <a href=https://git-scm.com/downloads>Git</a> integrado com <a href=https://github.com>GitHub</a>
+</ul>
+<h4 align="center"> <img = src="images/vscode.png" width=12%>       <img = src="images/c.png" width=12%><img = src="images/python.png" width=18%><img = src="images/linux.png" width=9%><img = src="images/github.png" width=15%></h4>
+<hr>
+<h3>Alunos:</h3>
 <br>
 
 | Nome            | GitHub                  | Email                  |
@@ -51,8 +85,8 @@ Alunos:
 
 <h6>Professora: <a href="https://www.ic.uff.br/blog/pessoas/maria-cristina-silva-boeres/">Maria Cristina Boeres</a></h6>
 
-<h2 align="center"> <img = src="![image](https://github.com/amandazirpolo/escalonador-de-processos/assets/123826914/e93c2b4f-5707-4b13-b576-e8b965ad1166)
-" width=20%> <img = src="![image](https://github.com/amandazirpolo/escalonador-de-processos/assets/123826914/2b1929ff-dd4e-440a-96db-a2079a4e52b9)
-" width=18%>
+
+<h2 align="center"> <img = src="images/uff.png" width=20%> <img = src="images/ic.png" width=25%>
+<br>
 <hr>
 <i align="center">Universidade Federal Fluminense, 2024</i>
